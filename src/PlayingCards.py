@@ -82,15 +82,19 @@ class Card:
         self.tag = ''
 
     def toString(self):
-        if self.num == -1:
+        if self.num < 0:
             return 'No cards!'
-        elif self.num >= 52:
-            return ':black_joker:'
 
-        cardString = Card.ranks[int(self.num/4)]
-        cardString += ' of ' + Card.suits[self.num%4]
+        cardString = ''
+        if self.num >= 52:
+            cardString = ':black_joker:'
+        else:
+            cardString = Card.ranks[int(self.num/4)]
+            cardString += ' of ' + Card.suits[self.num%4]
+        
         if len(self.tag) > 0:
             cardString += ' [' + self.tag + ']'
+
         return cardString
 
     def __lt__(self,other):

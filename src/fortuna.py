@@ -21,6 +21,8 @@ def nCr(n, r):
     denom = reduce(op.mul, range(1, r+1), 1)
     return numer//denom
 
+TOKEN = open('../data/token.cfg').readline()
+
 client = Bot(description="Fortuna: a dice assistant by neuvo#1301", command_prefix="/", pm_help = True)
 
 USAGE_MSG = "Usage: %sroll <num dice> <difficulty>" % client.command_prefix
@@ -191,7 +193,7 @@ async def on_ready():
     print('Use this link to invite {}:'.format(client.user.name))
     print('https://discordapp.com/oauth2/authorize?client_id={}&scope=bot&permissions=8'.format(client.user.id))
     print('--------')
-    print('You are running ' + client.user.name + 'v2.0')
+    print('You are running ' + client.user.name + 'v2.1')
     print('Created by neuvo#1301')
     return await client.change_presence(activity=discord.Game(name=GAMES[DEFAULT_GAME]))
 
@@ -335,16 +337,28 @@ async def draw(ctx, *args):
         await ctx.send('draw not supported in current game system.')
         return
 
-    numCards = 1
+    num_cards = 1
     tag = ''
+    num_start = 0
+    tag_start = 0
+    plane = 'meatspace'
 
-    if len(args) > 0:
-        numCards = int(args[0])
+    if len(args) > 0 and not Utils.int_format(args[0]) and args[0].lower() in savageWorlds.get_plane_names():
+        plane = args[0].lower()
+        num_start += 1
+        tag_start += 1
 
-    if len(args) == 2:
-        tag = str(args[1])
+    if len(args) > 0 and Utils.int_format(args[num_start]):
+        num_cards = int(args[num_start])
+        tag_start += 1
 
-    await ctx.send(savageWorlds.draw(str(varrick.getNick(str(ctx.message.author))), numCards, tag))
+    if tag_start < len(args):
+        tag = args[tag_start]
+
+    for i in range(tag_start+1,len(args)):
+        tag = tag + ' ' + args[i]
+
+    await ctx.send(savageWorlds.draw(str(varrick.getNick(str(ctx.message.author))), plane, num_cards, tag))
 
 @commands.command(pass_context=True)
 async def shuffle(ctx, *args):

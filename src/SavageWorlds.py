@@ -12,6 +12,7 @@ class Game:
     
 
     config = {}
+    planes = {'meatspace':set(),'astral':set(),'matrix':set()}
 
     def __init__(self, client_command_prefix):
         fo = open(self.CFG_PATH)
@@ -42,6 +43,10 @@ class Game:
             dice.append(Die(1,general_die.sides))
         return dice
 
+    def get_plane_names(self):
+        print(self.planes.keys())
+        return self.planes.keys()
+
     # rolls dice for savage worlds.
     # will automatically handle aces and fumbles.
     # format: [die1] [optional:die2] [optional:mod]
@@ -63,7 +68,6 @@ class Game:
                 mod -= int(arg[1:])
             elif arg == 'dam' or arg == 'damage':
                 damageMode = True
-
             else:
                 currDice = self.parse_dice(arg)
                 dice = dice + currDice
@@ -122,35 +126,71 @@ class Game:
 
         return result_string
 
-    def draw(self, username, repeats, tag):
+    def draw(self, username, plane, repeats, tag):
         if self.the_deck.empty():
             return 'The deck is empty! %s cannot draw.' % username
 
-        outstring = '%s draws %s' % (username, self.the_deck.draw(username,tag))
+        card = self.the_deck.drawNum(username,tag)
+        print('%s has plane %s' % (card.toString(), plane))
+        self.planes[plane].add(card.num)
+        outstring = '%s draws %s' % (username, card.toString())
 
         for i in range(1,repeats):
             if self.the_deck.empty():
                 outstring += '; no more cards remaining.'
                 break
             else:
-                outstring += ', ' + self.the_deck.draw(username,tag)
+                card = self.the_deck.drawNum(username,tag)
+                self.planes[plane].add(card.num)
+                outstring += ', ' + card.toString()
 
         return outstring
 
     def countdown(self):
-        sorted_cards = {}
-        for user in self.the_deck.hands:
-            for card in self.the_deck.hands[user]:
-                sorted_cards[card] = user
-
-        if len(sorted_cards) == 0:
+        if len(self.the_deck.hands) == 0:
             return 'No one has any cards; countdown aborted'
 
+        matrix_cards = {}
+        astral_cards = {}
+        meatspace_cards = {}
+
+        for user in self.the_deck.hands:
+            for card in self.the_deck.hands[user]:
+                if card.num in self.planes['matrix']:
+                    matrix_cards[card] = user
+                elif card.num in self.planes['astral']:
+                    astral_cards[card] = user
+                else:
+                    meatspace_cards[card] = user
+                # sorted_cards[card] = user
+
         result_string = ''
-        sortedKeys = list(sorted_cards.keys())
-        sortedKeys.sort(reverse=True)
-        for card in sortedKeys:
-            result_string += sorted_cards[card] + ' holds ' + card.toString() + '\n'
+        matrix_keys = list(matrix_cards.keys())
+        astral_keys = list(astral_cards.keys())
+        meatspace_keys = list(meatspace_cards.keys())
+        matrix_keys.sort(reverse=True)
+        astral_keys.sort(reverse=True)
+        meatspace_keys.sort(reverse=True)
+
+        if len(matrix_keys) > 0:
+            result_string += '| MATRIX |\n'
+            for matrix_card in matrix_keys:
+                result_string += matrix_cards[matrix_card] + ' holds ' + matrix_card.toString() + '\n'
+
+        if len(astral_keys) > 0:
+            result_string += '| ASTRAL |\n'
+            for astral_card in astral_keys:
+                result_string += astral_cards[astral_card] + ' holds ' + astral_card.toString() + '\n'
+
+        if len(meatspace_keys) > 0:
+            result_string += '| MEATSPACE |\n'
+            for meatspace_card in meatspace_keys:
+                result_string += meatspace_cards[meatspace_card] + ' holds ' + meatspace_card.toString() + '\n'
+
+        # sortedKeys = list(sorted_cards.keys())
+        # sortedKeys.sort(reverse=True)
+        # for card in sortedKeys:
+        #     result_string += sorted_cards[card] + ' holds ' + card.toString() + '\n'
 
         return result_string
 
@@ -176,19 +216,20 @@ class Game:
         if username not in self.the_deck.hands or len(self.the_deck.hands[username]) == 0:
             return '%s has no cards to discard.\n' % username
 
-        result_string = ""
+        result_string = ''
 
         discards = set()
 
         for cardIndex in cardIndices:
             if cardIndex-1 not in range(0,len(self.the_deck.hands[username])):
-                result_string += '%d is out of bounds. %s holds cards numbered 1 to %d' % (cardIndex, username, len(self.the_deck.hands[username]))
+                result_string += '%d is out of bounds. %s holds cards numbered 1 to %d\n' % (cardIndex, username, len(self.the_deck.hands[username]))
             else:
                 discards.add(self.the_deck.hands[username][cardIndex-1])
 
         for discard in discards:
             self.the_deck.hands[username].remove(discard)
 
+        result_string += '%s discards their hand.\n' % username
         return result_string
 
     def shuffle(self, username):
