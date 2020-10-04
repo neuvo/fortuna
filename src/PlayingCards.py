@@ -99,3 +99,9 @@ class Card:
 
     def __lt__(self,other):
         return self.num < other.num
+
+    def __eq__(self,other):
+        return self.num == other.num
+
+    def __hash__(self):
+        return self.num.__hash__() ^ self.tag.__hash__()

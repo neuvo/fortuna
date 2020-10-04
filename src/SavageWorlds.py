@@ -10,8 +10,9 @@ import Utils
 class Game:
     CFG_PATH='../data/savageworlds.cfg'
     
-
     config = {}
+
+    # sets of card numbers in each plane
     planes = {'meatspace':set(),'astral':set(),'matrix':set()}
 
     def __init__(self, client_command_prefix):
@@ -44,7 +45,6 @@ class Game:
         return dice
 
     def get_plane_names(self):
-        print(self.planes.keys())
         return self.planes.keys()
 
     # rolls dice for savage worlds.
@@ -66,7 +66,7 @@ class Game:
                 mod += int(arg[1:])
             elif arg[0] == '-':
                 mod -= int(arg[1:])
-            elif arg == 'dam' or arg == 'damage':
+            elif arg == 'dam' or arg == 'damage' or arg == 'dmg':
                 damageMode = True
             else:
                 currDice = self.parse_dice(arg)
@@ -131,7 +131,6 @@ class Game:
             return 'The deck is empty! %s cannot draw.' % username
 
         card = self.the_deck.drawNum(username,tag)
-        print('%s has plane %s' % (card.toString(), plane))
         self.planes[plane].add(card.num)
         outstring = '%s draws %s' % (username, card.toString())
 
@@ -233,8 +232,8 @@ class Game:
         return result_string
 
     def shuffle(self, username):
-        if (username != self.config['DM']):
-            return 'Only the DM (%s) may shuffle the deck' % (self.config['DM'])
+        # if (username != self.config['DM']):
+        #     return 'Only the DM (%s) may shuffle the deck' % (self.config['DM'])
         
         self.the_deck.shuffle()
         return '%s shuffles the deck' % (username)
@@ -253,8 +252,6 @@ class Game:
 
         if cardIndex-1 not in range(0,len(self.the_deck.hands[username])):
             return '%d is out of bounds. %s holds cards numbered 1 to %d' % (cardIndex, username, len(self.the_deck.hands[username]))
-
-        print(self.the_deck.hands[username])
 
         tag = ''
         for i in range(1,len(args)):
@@ -278,7 +275,6 @@ class Game:
             for i in range(0,len(self.the_deck.hands[username])):
                 target_cards.add(i)
         else:
-            result_string = ''
             for arg in args:
                 if not Utils.int_format(arg):
                     result_string += 'Ignoring non-integer argument %s...\n' % arg
@@ -293,6 +289,43 @@ class Game:
 
         return result_string
 
+    def planeshift(self, username, args):
+        if username not in self.the_deck.hands:
+            return '%s has no cards. Aborting.' % (username)
+
+        planeshifts = {}
+        result_string = ''
+
+        if len(args) == 0:
+            return 'No cards or planes specified; aborting planeshift.'
+
+        for arg in args:
+            if Utils.int_format(arg) and int(arg) not in planeshifts.keys():
+                card = self.the_deck.hands[username][int(arg)-1]
+                planeshifts[card] = ''
+            elif arg.lower() in self.planes:
+                for card in planeshifts:
+                    if planeshifts[card] == '':
+                        planeshifts[card] = arg.lower()
+
+        for card in planeshifts:
+            dest_plane = planeshifts[card]
+            src_plane = ''
+            if dest_plane == '':
+                result_string += 'No destination plane given for %s, skipping...\n' % card.toString()
+                continue
+
+            for plane in self.planes:
+                print(self.planes[plane])
+                if card.num in self.planes[plane]:
+                    self.planes[plane].remove(card.num)
+                    src_plane = plane
+                    break
+
+            self.planes[dest_plane].add(card.num)
+            result_string += '%s planeshifted to %s\n' % (card.toString(), dest_plane)
+
+        return result_string
 
     def usage(self):
         return self.ROLL_MSG + self.DRAW_MSG + self.COUNTDOWN_MSG + self.HAND_MSG + self.SHUFFLE_MSG + self.CARDS_LEFT_MSG + self.TAG_MSG + self.CLEAR_TAG_MSG

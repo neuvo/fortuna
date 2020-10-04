@@ -435,8 +435,12 @@ async def tag(ctx, *args):
     await ctx.send(savageWorlds.tag(get_name(ctx), args))
 
 @commands.command(pass_context=True)
-async def clear_tag(ctx, *args):
+async def cleartag(ctx, *args):
     await ctx.send(savageWorlds.clear_tag(get_name(ctx), args))
+
+@commands.command(pass_context=True)
+async def planeshift(ctx, *args):
+    await ctx.send(savageWorlds.planeshift(get_name(ctx), args))
 
 # Usage command: 
 @commands.command()
@@ -448,12 +452,13 @@ async def usage(ctx):
 
 client.add_command(analyze)
 client.add_command(cardsleft)
-client.add_command(clear_tag)
+client.add_command(cleartag)
 client.add_command(cookie)
 client.add_command(countdown)
 client.add_command(discard)
 client.add_command(draw)
 client.add_command(hand)
+client.add_command(planeshift)
 client.add_command(roll)
 client.add_command(setgame)
 client.add_command(shuffle)
