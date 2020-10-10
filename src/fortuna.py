@@ -333,7 +333,7 @@ async def setgame(ctx, *args):
 
 @commands.command(pass_context=True)
 async def draw(ctx, *args):
-    if not current_game == Game.savageWorlds:
+    if current_game != Game.savageWorlds:
         await ctx.send('draw not supported in current game system.')
         return
 
@@ -348,7 +348,7 @@ async def draw(ctx, *args):
         num_start += 1
         tag_start += 1
 
-    if len(args) > 0 and Utils.int_format(args[num_start]):
+    if num_start < len(args) and len(args) > 0 and Utils.int_format(args[num_start]):
         num_cards = int(args[num_start])
         tag_start += 1
 
@@ -388,7 +388,7 @@ async def discard(ctx, *args):
 @commands.command(pass_context=True)
 async def countdown(ctx, *args):
     if current_game == Game.savageWorlds:
-        await ctx.send(savageWorlds.countdown())
+        await ctx.send(savageWorlds.countdown(args))
     else:
         await ctx.send('countdown not supported in current game system.')
 

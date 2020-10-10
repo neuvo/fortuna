@@ -7,13 +7,52 @@ from Die import Die
 from PlayingCards import Deck
 import Utils
 
+MEATSPACE = 'meatspace'
+ASTRAL = 'astral'
+MATRIX = 'matrix'
+
 class Game:
     CFG_PATH='../data/savageworlds.cfg'
     
     config = {}
 
     # sets of card numbers in each plane
-    planes = {'meatspace':set(),'astral':set(),'matrix':set()}
+    planes = {MEATSPACE:set(),ASTRAL:set(),MATRIX:set()}
+
+    class initiative_tracker:
+        current = -1
+        ordered_card_nums = []
+
+        def init(self, planes):
+            sorted_matrix = list(planes[MATRIX])
+            sorted_matrix.sort(reverse=True)
+            sorted_astral = list(planes[ASTRAL])
+            sorted_astral.sort(reverse=True)
+            sorted_meatspace = list(planes[MEATSPACE])
+            sorted_meatspace.sort(reverse=True)
+
+            self.current = -1
+            self.ordered_card_nums = []
+            for card_num in sorted_matrix:
+                self.ordered_card_nums.append(card_num)
+            for card_num in sorted_astral:
+                self.ordered_card_nums.append(card_num)
+            for card_num in sorted_meatspace:
+                self.ordered_card_nums.append(card_num)
+
+        def start(self):
+            self.current = 0
+
+        def next(self):
+            self.current = (self.current + 1) % len(self.ordered_card_nums)
+
+        def curr(self):
+            return self.ordered_card_nums[self.current]
+
+        def initialized(self):
+            return self.current != -1
+
+    init_tracker = initiative_tracker()
 
     def __init__(self, client_command_prefix):
         fo = open(self.CFG_PATH)
@@ -30,12 +69,16 @@ class Game:
         self.ROLL_MSG=('Roll dice: %sroll <die1> <optional:die2> <optional:mod>\n\tExample: %sroll 1d8 1d6 +2\n\tInfo: mod must have a + or a - in front, and be separated by a space. Dice and mods may be in any order.\n' % (client_command_prefix, client_command_prefix))
         self.DRAW_MSG=('Draw card(s): %sdraw <optional:number> <optional:tag>\n\tExample: %sdraw 2\n\tInfo: draws 1 card if no number is supplied. Optional tag can be used to track cards belonging to different characters, but the same player.\n' % (client_command_prefix, client_command_prefix))
         self.COUNTDOWN_MSG=('See the countdown order: %scountdown\n\tExample: %scountdown\n\tInfo: presents every user\'s cards in descending order.\n' % (client_command_prefix, client_command_prefix))
+        self.COUNTDOWN_START_MSG=('Start or restart the countdown order: %scountdown start\n\tInfo: moves the initiative tracker to the top of the round.\n' % (client_command_prefix))
+        self.COUNTDOWN_NEXT_MSG=('Move the initiative tracker one step: %scountdown next\n\tInfo: If the tracker is uninitialized, next will automatically initialize it and move the tracker to the first player.\n' % (client_command_prefix))
         self.HAND_MSG=('See a user\'s current hand: %shand <optional:username>\n\tExample: %shand neuvo\#1301\n' % (client_command_prefix, client_command_prefix))
         self.SHUFFLE_MSG=('Return all cards to the deck and shuffle: %sshuffle\n\tExample: %sshuffle\n\tInfo: Only the DM may shuffle the deck.\n' % (client_command_prefix, client_command_prefix))
         self.CARDS_LEFT_MSG=('Count how many cards remain in the deck: %scardsleft\n\tExample: %scardsLeft\n' % (client_command_prefix, client_command_prefix))
         self.DISCARD_MSG=('Discard cards: %sdiscard <repeated:card number>\n\tExample: %sdiscard 1\n\tInfo: Cards are specified by their number; use %shand to see them.\n\tYou can pass multiple card numbers at once.\n' % (client_command_prefix, client_command_prefix,client_command_prefix))
         self.TAG_MSG=('Tag a card: %stag <card number> <tag>\n\tExample: %stag 1 azzie commando\n' % (client_command_prefix,client_command_prefix))
         self.CLEAR_TAG_MSG=('Remove tags from cards: %sclear_tag <optional repeated:card number>\n\tExample: %sclear_tag 1 2 3\n\tInfo: if no card numbers are provided, clears tags from all the user\'s cards.' % (client_command_prefix,client_command_prefix))
+
+        self.usage_messages = [self.ROLL_MSG,self.DRAW_MSG,self.COUNTDOWN_MSG,self.COUNTDOWN_START_MSG,self.COUNTDOWN_NEXT_MSG,self.HAND_MSG,self.SHUFFLE_MSG,self.CARDS_LEFT_MSG,self.DISCARD_MSG,self.TAG_MSG,self.CLEAR_TAG_MSG]
 
     def parse_dice(self, dieStr):
         dice = []
@@ -145,9 +188,28 @@ class Game:
 
         return outstring
 
-    def countdown(self):
+    def countdown(self, args):
         if len(self.the_deck.hands) == 0:
             return 'No one has any cards; countdown aborted'
+        elif len(args) > 1:
+            return self.COUNTDOWN_MSG + self.COUNTDOWN_START_MSG + self.COUNTDOWN_NEXT_MSG
+
+        if self.init_tracker.current == -1:
+            self.init_tracker.init(self.planes)
+
+        if len(args) == 1 and args[0].lower() == 'start':
+            self.init_tracker.start()
+            for user in self.the_deck.hands:
+                for card in self.the_deck.hands[user]:
+                    if card.num == self.init_tracker.curr():
+                        return user + '\'s turn - ' + card.toString() + '\n'
+            return 'No cards found.\n'
+        elif len(args) == 1 and args[0].lower() == 'next':
+            self.init_tracker.next()
+            for user in self.the_deck.hands:
+                for card in self.the_deck.hands[user]:
+                    if card.num == self.init_tracker.curr():
+                        return user + '\'s turn - ' + card.toString() + '\n'
 
         matrix_cards = {}
         astral_cards = {}
@@ -161,7 +223,6 @@ class Game:
                     astral_cards[card] = user
                 else:
                     meatspace_cards[card] = user
-                # sorted_cards[card] = user
 
         result_string = ''
         matrix_keys = list(matrix_cards.keys())
@@ -174,17 +235,23 @@ class Game:
         if len(matrix_keys) > 0:
             result_string += '| MATRIX |\n'
             for matrix_card in matrix_keys:
-                result_string += matrix_cards[matrix_card] + ' holds ' + matrix_card.toString() + '\n'
+                line = matrix_cards[matrix_card] + ' holds ' + matrix_card.toString()
+                line = self.wrap_countdown_line(matrix_card.num, line)
+                result_string += line
 
         if len(astral_keys) > 0:
             result_string += '| ASTRAL |\n'
             for astral_card in astral_keys:
-                result_string += astral_cards[astral_card] + ' holds ' + astral_card.toString() + '\n'
+                line = astral_cards[astral_card] + ' holds ' + astral_card.toString()
+                line = self.wrap_countdown_line(astral_card.num, line)
+                result_string += line
 
         if len(meatspace_keys) > 0:
             result_string += '| MEATSPACE |\n'
             for meatspace_card in meatspace_keys:
-                result_string += meatspace_cards[meatspace_card] + ' holds ' + meatspace_card.toString() + '\n'
+                line = meatspace_cards[meatspace_card] + ' holds ' + meatspace_card.toString()
+                line = self.wrap_countdown_line(meatspace_card.num, line)
+                result_string += line
 
         # sortedKeys = list(sorted_cards.keys())
         # sortedKeys.sort(reverse=True)
@@ -192,6 +259,12 @@ class Game:
         #     result_string += sorted_cards[card] + ' holds ' + card.toString() + '\n'
 
         return result_string
+
+    def wrap_countdown_line(self,card_num,line):
+        if self.init_tracker.initialized() and self.init_tracker.curr() == card_num:
+            line = '>>' + line + '<<'
+        line += '\n'
+        return line
 
     def hand(self, username):
         hand = []
@@ -204,7 +277,7 @@ class Game:
         # hand.sort(reverse=True)
         handStr = []
         for card in hand:
-            handStr.append(card.toString())
+            handStr.append(card.toString() + ' (' + self.get_plane(card.num).upper() + ')')
         result_string = '%s holds:\n' % username
         for i in range(len(hand)):
             result_string += str(i+1) + ': ' + handStr[i] + '\n'
@@ -217,18 +290,18 @@ class Game:
 
         result_string = ''
 
-        discards = set()
+        discards = []
 
         for cardIndex in cardIndices:
             if cardIndex-1 not in range(0,len(self.the_deck.hands[username])):
                 result_string += '%d is out of bounds. %s holds cards numbered 1 to %d\n' % (cardIndex, username, len(self.the_deck.hands[username]))
             else:
-                discards.add(self.the_deck.hands[username][cardIndex-1])
+                discards.append(self.the_deck.hands[username][cardIndex-1])
 
         for discard in discards:
             self.the_deck.hands[username].remove(discard)
+            result_string += '%s discards %s\n' % (username, discard.toString())
 
-        result_string += '%s discards their hand.\n' % username
         return result_string
 
     def shuffle(self, username):
@@ -267,7 +340,7 @@ class Game:
         if username not in self.the_deck.hands:
             return '%s has no cards. Aborting.' % (username)
 
-        target_cards = set()
+        target_cards = []
 
         result_string = ''
 
@@ -327,8 +400,21 @@ class Game:
 
         return result_string
 
+    def get_plane(self, cardnum):
+        if cardnum in self.planes['meatspace']:
+            return 'meatspace'
+        elif cardnum in self.planes['astral']:
+            return 'astral'
+        elif cardnum in self.planes['matrix']:
+            return 'matrix'
+        else:
+            return ''
+
     def usage(self):
-        return self.ROLL_MSG + self.DRAW_MSG + self.COUNTDOWN_MSG + self.HAND_MSG + self.SHUFFLE_MSG + self.CARDS_LEFT_MSG + self.TAG_MSG + self.CLEAR_TAG_MSG
+        returnme = ''
+        for usage_msg in self.usage_messages:
+            returnme += usage_msg
+        return returnme
 
 
 
