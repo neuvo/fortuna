@@ -268,7 +268,7 @@ class Game:
 
     def hand(self, username):
         hand = []
-        if username in self.the_deck.hands:
+        if username in self.the_deck.hands and len(self.the_deck.hands[username]) > 0:
             for card in self.the_deck.hands[username]:
                 hand.append(card)
         else:
@@ -284,7 +284,7 @@ class Game:
         result_string += '\n'
         return result_string
 
-    def discard(self, username, cardIndices):
+    def discard(self, username, args):
         if username not in self.the_deck.hands or len(self.the_deck.hands[username]) == 0:
             return '%s has no cards to discard.\n' % username
 
@@ -292,15 +292,26 @@ class Game:
 
         discards = []
 
-        for cardIndex in cardIndices:
-            if cardIndex-1 not in range(0,len(self.the_deck.hands[username])):
-                result_string += '%d is out of bounds. %s holds cards numbered 1 to %d\n' % (cardIndex, username, len(self.the_deck.hands[username]))
+        for arg in args:
+            print(arg)
+            if Utils.int_format(arg):
+                cardIndex = int(arg)
+                if cardIndex-1 not in range(0,len(self.the_deck.hands[username])):
+                    result_string += '%d is out of bounds. %s holds cards numbered 1 to %d\n' % (cardIndex, username, len(self.the_deck.hands[username]))
+                elif not self.the_deck.hands[username][cardIndex-1] in discards:
+                    print('discarding index %d' % cardIndex)
+                    discards.append(self.the_deck.hands[username][cardIndex-1])
             else:
-                discards.append(self.the_deck.hands[username][cardIndex-1])
+                for card in self.the_deck.hands[username]:
+                    if card.tag == arg and not card in discards:
+                        discards.append(card)
 
         for discard in discards:
             self.the_deck.hands[username].remove(discard)
             result_string += '%s discards %s\n' % (username, discard.toString())
+
+        if len(result_string) == 0:
+            result_string = 'No matching cards in %s\'s hand' % (username)
 
         return result_string
 

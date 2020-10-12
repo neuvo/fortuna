@@ -9,6 +9,7 @@ class Deck:
         for i in range(0,54):
             self.cards.append(Card(i))
         self.hands = {}
+        self.discards = []
 
     def drawNum(self, user, tag):
         if len(self.cards) == 0:

@@ -419,16 +419,7 @@ async def cookie(ctx, *args):
 
 @commands.command(pass_context=True)
 async def discard(ctx, *args):
-    index_array = []
-    result_string = ''
-    for arg in args:
-        if Utils.int_format(arg):
-            index_array.append(int(arg))
-        else:
-            result_string += 'Ignoring non-integer argument %s\n' % arg
-
-    result_string += savageWorlds.discard(get_name(ctx), index_array)
-    await ctx.send(result_string)
+    await ctx.send(savageWorlds.discard(get_name(ctx),args))
 
 @commands.command(pass_context=True)
 async def tag(ctx, *args):
