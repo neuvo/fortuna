@@ -169,7 +169,28 @@ class Game:
 
         return result_string
 
-    def draw(self, username, plane, repeats, tag):
+    def draw(self, username, args):
+        num_cards = 1
+        tag = ''
+        num_start = 0
+        tag_start = 0
+        plane = 'meatspace'
+
+        if len(args) > 0 and not Utils.int_format(args[0]) and args[0].lower() in self.get_plane_names():
+            plane = args[0].lower()
+            num_start += 1
+            tag_start += 1
+
+        if num_start < len(args) and len(args) > 0 and Utils.int_format(args[num_start]):
+            num_cards = int(args[num_start])
+            tag_start += 1
+
+        if tag_start < len(args):
+            tag = args[tag_start]
+
+        for i in range(tag_start+1,len(args)):
+            tag = tag + ' ' + args[i]
+
         if self.the_deck.empty():
             return 'The deck is empty! %s cannot draw.' % username
 
@@ -177,7 +198,7 @@ class Game:
         self.planes[plane].add(card.num)
         outstring = '%s draws %s' % (username, card.toString())
 
-        for i in range(1,repeats):
+        for i in range(1,num_cards):
             if self.the_deck.empty():
                 outstring += '; no more cards remaining.'
                 break
@@ -285,33 +306,45 @@ class Game:
         return result_string
 
     def discard(self, username, args):
-        if username not in self.the_deck.hands or len(self.the_deck.hands[username]) == 0:
+        if '-p' in args:
+            return self.discard_pile()
+        elif username not in self.the_deck.hands or len(self.the_deck.hands[username]) == 0:
             return '%s has no cards to discard.\n' % username
 
         result_string = ''
 
-        discards = []
+        discard_cards = []
+
+        if len(args) == 0:
+            for card in self.the_deck.hands[username]:
+                discard_cards.append(card)
 
         for arg in args:
-            print(arg)
             if Utils.int_format(arg):
-                cardIndex = int(arg)
-                if cardIndex-1 not in range(0,len(self.the_deck.hands[username])):
-                    result_string += '%d is out of bounds. %s holds cards numbered 1 to %d\n' % (cardIndex, username, len(self.the_deck.hands[username]))
-                elif not self.the_deck.hands[username][cardIndex-1] in discards:
-                    print('discarding index %d' % cardIndex)
-                    discards.append(self.the_deck.hands[username][cardIndex-1])
+                card_index = int(arg)-1
+                if card_index not in range(0,len(self.the_deck.hands[username])):
+                    result_string += '%d is out of bounds. %s holds cards numbered 1 to %d\n' % (card_index+1, username, len(self.the_deck.hands[username]))
+                elif not self.the_deck.hands[username][card_index] in discard_cards:
+                    discard_cards.append(self.the_deck.hands[username][card_index])
             else:
                 for card in self.the_deck.hands[username]:
-                    if card.tag == arg and not card in discards:
-                        discards.append(card)
+                    if card.tag.lower() == arg.lower() and not card in discard_cards:
+                        discard_cards.append(card)
 
-        for discard in discards:
-            self.the_deck.hands[username].remove(discard)
-            result_string += '%s discards %s\n' % (username, discard.toString())
+        for discard_card in discard_cards:
+            self.the_deck.discard(username,discard_card)
+            result_string += '%s discards %s\n' % (username, discard_card.toString())
 
         if len(result_string) == 0:
             result_string = 'No matching cards in %s\'s hand' % (username)
+
+        return result_string
+
+    def discard_pile(self):
+        result_string = 'Discard pile contains:\n'
+        for i in range(0,len(self.the_deck.discard_pile)):
+            discard = self.the_deck.discard_pile[i]
+            result_string += '%d: %s\n' % (i,discard.toString())
 
         return result_string
 
@@ -332,10 +365,10 @@ class Game:
         if not username in self.the_deck.hands:
             return username + ' has no cards to tag; aborting.'
 
-        cardIndex = int(args[0])
+        card_index = int(args[0])
 
-        if cardIndex-1 not in range(0,len(self.the_deck.hands[username])):
-            return '%d is out of bounds. %s holds cards numbered 1 to %d' % (cardIndex, username, len(self.the_deck.hands[username]))
+        if card_index-1 not in range(0,len(self.the_deck.hands[username])):
+            return '%d is out of bounds. %s holds cards numbered 1 to %d' % (card_index, username, len(self.the_deck.hands[username]))
 
         tag = ''
         for i in range(1,len(args)):
@@ -343,9 +376,9 @@ class Game:
                 tag += ' '
             tag += args[i]
 
-        self.the_deck.hands[username][cardIndex-1].tag = tag
+        self.the_deck.hands[username][card_index-1].tag = tag
 
-        return '%s tags %s' % (username, self.the_deck.hands[username][cardIndex-1].toString())
+        return '%s tags %s' % (username, self.the_deck.hands[username][card_index-1].toString())
 
     def clear_tag(self, username, args):
         if username not in self.the_deck.hands:

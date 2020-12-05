@@ -9,7 +9,7 @@ class Deck:
         for i in range(0,54):
             self.cards.append(Card(i))
         self.hands = {}
-        self.discards = []
+        self.discard_pile = []
 
     def drawNum(self, user, tag):
         if len(self.cards) == 0:
@@ -67,11 +67,11 @@ class Deck:
     def cardsLeft(self):
         return len(self.cards)
 
-    def discard(self, user, cardIndex):
-        card = self.hands[user][cardIndex]
-        self.hands[user].pop(cardIndex)
+    def discard(self, user, card):
+        self.hands[user].remove(card)
         if len(self.hands[user]) == 0:
             self.hands.pop(user)
+        self.discard_pile.append(card)
         return '%s discards %s' % (user, card.toString())
 
 class Card:

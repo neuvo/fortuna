@@ -170,7 +170,7 @@ def roll_dice_d6(num):
 def roll_dreidel(num):
     # stores the complete result string, to be posted in the chat
     results = []
-    mapping = {0:"assets/nun.png", 1:"assets/gimel.png", 2:"assets/hay.png", 3:"assets/shin.png"}
+    mapping = {0:"../assets/nun.png", 1:"../assets/gimel.png", 2:"../assets/hay.png", 3:"../assets/shin.png"}
     result = random.randint(0,3)
 
     # perform all the rolls
@@ -260,6 +260,10 @@ async def roll(ctx, *args):
         await ctx.send(roll_dice_d6(num))
 
 @commands.command(pass_context=True)
+async def r(ctx, *args):
+    await roll(ctx,*args)
+
+@commands.command(pass_context=True)
 async def analyze(ctx, *args):
     if current_game == Game.shadowrun:
         outstring = ""
@@ -337,28 +341,7 @@ async def draw(ctx, *args):
         await ctx.send('draw not supported in current game system.')
         return
 
-    num_cards = 1
-    tag = ''
-    num_start = 0
-    tag_start = 0
-    plane = 'meatspace'
-
-    if len(args) > 0 and not Utils.int_format(args[0]) and args[0].lower() in savageWorlds.get_plane_names():
-        plane = args[0].lower()
-        num_start += 1
-        tag_start += 1
-
-    if num_start < len(args) and len(args) > 0 and Utils.int_format(args[num_start]):
-        num_cards = int(args[num_start])
-        tag_start += 1
-
-    if tag_start < len(args):
-        tag = args[tag_start]
-
-    for i in range(tag_start+1,len(args)):
-        tag = tag + ' ' + args[i]
-
-    await ctx.send(savageWorlds.draw(str(varrick.getNick(str(ctx.message.author))), plane, num_cards, tag))
+    await ctx.send(savageWorlds.draw(get_name(ctx),args))
 
 @commands.command(pass_context=True)
 async def shuffle(ctx, *args):
@@ -383,7 +366,7 @@ async def discard(ctx, *args):
     if not current_game == Game.savageWorlds:
         await ctx.send('draw not supported in current game system.')
     else:
-        await ctx.send(savageWorlds.discard(str(varrick.getNick(str(ctx.message.author)))))
+        await ctx.send(savageWorlds.discard(get_name(ctx),args))
 
 @commands.command(pass_context=True)
 async def countdown(ctx, *args):
@@ -391,6 +374,10 @@ async def countdown(ctx, *args):
         await ctx.send(savageWorlds.countdown(args))
     else:
         await ctx.send('countdown not supported in current game system.')
+
+@commands.command(pass_context=True)
+async def cd(ctx, *args):
+    await countdown(ctx,*args)
 
 @commands.command(pass_context=True)
 async def cardsleft(ctx):
@@ -443,6 +430,7 @@ async def usage(ctx):
 
 client.add_command(analyze)
 client.add_command(cardsleft)
+client.add_command(cd)
 client.add_command(cleartag)
 client.add_command(cookie)
 client.add_command(countdown)
@@ -450,6 +438,7 @@ client.add_command(discard)
 client.add_command(draw)
 client.add_command(hand)
 client.add_command(planeshift)
+client.add_command(r)
 client.add_command(roll)
 client.add_command(setgame)
 client.add_command(shuffle)
