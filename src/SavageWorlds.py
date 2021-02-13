@@ -1,3 +1,5 @@
+from enum import Enum
+
 import Utils
 from Die import Die
 from PlayingCards import Deck
@@ -98,9 +100,14 @@ class Game:
         self.CARDS_LEFT_MSG = ('Count how many cards remain in the deck: %scardsleft\n\tExample: %scardsLeft\n' % (
             client_command_prefix, client_command_prefix))
         self.DISCARD_MSG = (
-                'Discard cards: %sdiscard <repeated:card number>\n\tExample: %sdiscard 1\n\tInfo: Cards are specified '
-                'by their number; use %shand to see them.\n\tYou can pass multiple card numbers at once.\n'
-                'If no cards are presented, all cards in your hand will be discarded.\n' % (
+                'Discard cards: %sdiscard <repeated:card number/tag> <optional:-t flag> <optional:tag(s)>\n\tExample: '
+                '%sdiscard 1 -t red samurai\n\tInfo: discard all cards'
+                ' in your hand matching the provided numbers and tags; use %shand to see the numbers.\n\t'
+                'You can pass multiple card numbers at once by separating the numbers/tags by a space.\n'
+                'The optional \"-t\" flag allows you to enter multiple words as one tag.\nIn the example, the -t flag'
+                'commands a discard of all cards tagged "red samurai"; without the flag, the command will discard all'
+                'cards labeled "red" and all cards labeled "samurai".'
+                'If no cards are specified, all cards in your hand will be discarded.\n' % (
                     client_command_prefix, client_command_prefix, client_command_prefix))
         self.TAG_MSG = ('Tag a card: %stag <card number> <tag>\n\tExample: %stag 1 azzie commando\n' % (
             client_command_prefix, client_command_prefix))
@@ -231,45 +238,61 @@ class Game:
 
         return result_string
 
+    class DrawState(Enum):
+        plane = 1,
+        num = 2,
+        tag = 3
+
     def draw(self, username, args):
-        num_cards = 1
-        tag = ''
-        num_start = 0
-        tag_start = 0
-        plane = 'meatspace'
-
-        if len(args) > 0 and not Utils.int_format(args[0]) and args[0].lower() in self.get_plane_names():
-            plane = args[0].lower()
-            num_start += 1
-            tag_start += 1
-
-        if num_start < len(args) and len(args) > 0 and Utils.int_format(args[num_start]):
-            num_cards = int(args[num_start])
-            tag_start += 1
-
-        if tag_start < len(args):
-            tag = args[tag_start]
-
-        for i in range(tag_start + 1, len(args)):
-            tag = tag + ' ' + args[i]
-
         if self.the_deck.empty():
             return 'The deck is empty! %s cannot draw.' % username
 
-        card = self.the_deck.drawNum(username, tag)
-        self.planes[plane].add(card.num)
-        outstring = '%s draws %s' % (username, card.toString())
+        draw_requests = []
+        request_builder = Deck.DrawRequest()
+        plane = 'meatspace'
 
-        for i in range(1, num_cards):
-            if self.the_deck.empty():
-                outstring += '; no more cards remaining.'
-                break
+        for arg in args:
+            if request_builder.empty() and arg.lower() in self.get_plane_names():
+                plane = arg.lower()
+            elif Utils.int_format(arg):
+                if request_builder.has_num_cards():
+                    if not request_builder.complete():
+                        request_builder.set_tag('')
+                    draw_requests.append(request_builder)
+                    request_builder = Deck.DrawRequest()
+                request_builder.set_num(int(arg))
             else:
-                card = self.the_deck.drawNum(username, tag)
-                self.planes[plane].add(card.num)
-                outstring += ', ' + card.toString()
+                request_builder.append_tag(arg)
 
-        return outstring
+        if request_builder.has_num_cards():
+            request_builder.append_tag('')
+            draw_requests.append(request_builder)
+        elif len(draw_requests) == 0:
+            request_builder.set_num(1)
+            request_builder.set_tag('')
+            draw_requests.append(request_builder)
+
+        out_string = ''
+
+        for draw_request in draw_requests:
+            num_cards = draw_request.num_cards
+            tag = draw_request.tag
+            card = self.the_deck.draw_num(username, tag)
+            self.planes[plane].add(card.num)
+            out_string += '%s draws %s' % (username, card.toString())
+
+            for i in range(1, num_cards):
+                if self.the_deck.empty():
+                    out_string += '; no more cards remaining.'
+                    break
+                else:
+                    card = self.the_deck.draw_num(username, tag)
+                    self.planes[plane].add(card.num)
+                    out_string += ', ' + card.toString()
+
+            out_string += '\n'
+
+        return out_string
 
     def countdown(self, args):
         if len(self.the_deck.hands) == 0:
@@ -377,12 +400,22 @@ class Game:
 
         discard_cards = []
 
+        t_mode = False
+        accumulated_tag = ''
+
         if len(args) == 0:
             for card in self.the_deck.hands[username]:
                 discard_cards.append(card)
 
         for arg in args:
             if Utils.int_format(arg):
+                if t_mode:
+                    t_mode = False
+                    if len(accumulated_tag) > 0:
+                        for card in self.the_deck.hands[username]:
+                            if card.tag.lower() == accumulated_tag.lower() and card not in discard_cards:
+                                discard_cards.append(card)
+
                 card_index = int(arg) - 1
                 if card_index not in range(0, len(self.the_deck.hands[username])):
                     result_string += '%d is out of bounds. %s holds cards numbered 1 to %d\n' % (
@@ -390,9 +423,26 @@ class Game:
                 elif not self.the_deck.hands[username][card_index] in discard_cards:
                     discard_cards.append(self.the_deck.hands[username][card_index])
             else:
-                for card in self.the_deck.hands[username]:
-                    if card.tag.lower() == arg.lower() and not card in discard_cards:
-                        discard_cards.append(card)
+                if arg == '-t':
+                    t_mode = True
+                    if len(accumulated_tag) > 0:
+                        for card in self.the_deck.hands[username]:
+                            if card.tag.lower() == accumulated_tag.lower() and card not in discard_cards:
+                                discard_cards.append(card)
+                    accumulated_tag = ''
+                elif t_mode:
+                    if len(accumulated_tag) > 0:
+                        accumulated_tag += ' '
+                    accumulated_tag += arg
+                else:
+                    for card in self.the_deck.hands[username]:
+                        if card.tag.lower() == arg.lower() and card not in discard_cards:
+                            discard_cards.append(card)
+
+        if len(accumulated_tag) > 0:
+            for card in self.the_deck.hands[username]:
+                if card.tag.lower() == accumulated_tag.lower() and card not in discard_cards:
+                    discard_cards.append(card)
 
         for discard_card in discard_cards:
             self.the_deck.discard(username, discard_card)
@@ -419,7 +469,7 @@ class Game:
         return '%s shuffles the deck' % (username)
 
     def cards_left(self):
-        return '%d cards remain in the deck' % self.the_deck.cardsLeft()
+        return '%d cards remain in the deck' % self.the_deck.cards_left()
 
     def tag(self, username, args):
         if len(args) < 2 or not Utils.int_format(args[0]):
@@ -497,7 +547,6 @@ class Game:
                 continue
 
             for plane in self.planes:
-                print(self.planes[plane])
                 if card.num in self.planes[plane]:
                     self.planes[plane].remove(card.num)
                     break

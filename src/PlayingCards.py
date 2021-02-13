@@ -1,21 +1,55 @@
 import random
+import Utils
+
 
 class Deck:
     def __init__(self):
         self.shuffle()
 
+    class DrawRequest:
+        def __init__(self):
+            self.num_cards = None
+            self.tag = None
+
+        def empty(self) -> bool:
+            return self.num_cards is None and self.tag is None
+
+        def complete(self) -> bool:
+            return self.num_cards is not None and self.tag is not None
+
+        def has_num_cards(self) -> bool:
+            return self.num_cards is not None
+
+        def has_tag(self) -> bool:
+            return self.tag is not None
+
+        def set_tag(self, tag):
+            self.tag = str(tag)
+
+        def append_tag(self, tag_append):
+            if self.tag is None:
+                self.tag = tag_append
+            elif len(tag_append) > 0:
+                self.tag += ' ' + tag_append
+            else:
+                self.tag += tag_append
+
+        def set_num(self, num_cards):
+            if Utils.int_format(num_cards):
+                self.num_cards = int(num_cards)
+
     def shuffle(self):
         self.cards = []
-        for i in range(0,54):
+        for i in range(0, 54):
             self.cards.append(Card(i))
         self.hands = {}
         self.discard_pile = []
 
-    def drawNum(self, user, tag):
+    def draw_num(self, user, tag):
         if len(self.cards) == 0:
             return -1
 
-        index = random.randint(0,len(self.cards)-1)
+        index = random.randint(0, len(self.cards) - 1)
         card = self.cards[index]
         if len(tag) > 0:
             card.tag = tag
@@ -32,8 +66,8 @@ class Deck:
     # returns an array: [success,message]
     def trade(self, src, dest, cards):
         if user not in self.hands:
-            return [False,src + " has no cards; trade aborted"]
-        
+            return [False, src + " has no cards; trade aborted"]
+
         trades = []
         failed_trades = []
         for card in cards:
@@ -59,12 +93,12 @@ class Deck:
         return result_string
 
     def draw(self, user, tag):
-        return self.drawNum(user,tag).toString()
+        return self.draw_num(user, tag).toString()
 
     def empty(self):
         return len(self.cards) == 0
 
-    def cardsLeft(self):
+    def cards_left(self):
         return len(self.cards)
 
     def discard(self, user, card):
@@ -74,11 +108,12 @@ class Deck:
         self.discard_pile.append(card)
         return '%s discards %s' % (user, card.toString())
 
+
 class Card:
-    ranks = ['Deuce','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Jack','Queen','King','Ace']
+    ranks = ['Deuce', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King', 'Ace']
     suits = ['Clubs', 'Diamonds', 'Hearts', 'Spades']
 
-    def __init__(self,num):
+    def __init__(self, num):
         self.num = num
         self.tag = ''
 
@@ -90,18 +125,18 @@ class Card:
         if self.num >= 52:
             cardString = ':black_joker:'
         else:
-            cardString = Card.ranks[int(self.num/4)]
-            cardString += ' of ' + Card.suits[self.num%4]
-        
+            cardString = Card.ranks[int(self.num / 4)]
+            cardString += ' of ' + Card.suits[self.num % 4]
+
         if len(self.tag) > 0:
             cardString += ' [' + self.tag + ']'
 
         return cardString
 
-    def __lt__(self,other):
+    def __lt__(self, other):
         return self.num < other.num
 
-    def __eq__(self,other):
+    def __eq__(self, other):
         return self.num == other.num
 
     def __hash__(self):
