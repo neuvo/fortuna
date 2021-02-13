@@ -460,7 +460,7 @@ async def nickname(ctx, *args):
 
 @commands.command(pass_context=True)
 async def compare(ctx, *args):
-    await ctx.send(SavageWorlds.judge_roll(*args))
+    await ctx.send(SavageWorlds.compare(*args))
 
 # Usage command:
 @commands.command()

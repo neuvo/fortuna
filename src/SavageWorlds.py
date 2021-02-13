@@ -7,16 +7,6 @@ ASTRAL = 'astral'
 MATRIX = 'matrix'
 
 
-def judge_roll(*args) -> str:
-    if len(args) != 2 or not Utils.int_format(args[0]) or not Utils.int_format(args[1]):
-        return 'Usage: /compare roll TN'
-
-    roll = int(args[0])
-    tn = int(args[1])
-    msg = str(roll) + ' vs. ' + str(tn) + ' = '
-    return msg + count_raises(roll, tn) + '!'
-
-
 def count_raises(roll, tn):
     msg = ''
     raises = (roll - tn) // 4
@@ -83,13 +73,12 @@ class Game:
             self.config[pair[0]] = pair[1]
 
         self.the_deck = Deck()
-        self.init_usage(client_command_prefix)
 
-    def init_usage(self, client_command_prefix):
-        self.ROLL_MSG = ('Roll dice: %sroll <die1> <optional:die2> <optional:mod>\n\tExample: %sroll 1d8 1d6 '
-                         '+2\n\tInfo: mod must have a + or a - in front, and be separated by a space. Dice and mods '
-                         'may '
-                         'be in any order.\n' % (client_command_prefix, client_command_prefix))
+        self.ROLL_MSG = (
+                    'Roll dice: %sroll <die1> <optional:die2> <optional:mod> <optional:tn>\n\tExample: %sroll 1d8 1d6 '
+                    '+2\n\tInfo: mod must have a + or a - in front, and be separated by a space. Dice and mods '
+                    'may be in any order.\nThe TN flag must be presented as \"tn <number>\". The TN flag will '
+                    'automatically output the roll results.\n' % (client_command_prefix, client_command_prefix))
         self.DRAW_MSG = ('Draw card(s): %sdraw <optional:number> <optional:tag>\n\tExample: %sdraw 2\n\tInfo: draws 1 '
                          'card if no number is supplied. Optional tag can be used to track cards belonging to different '
                          'characters, but the same player.\n' % (client_command_prefix, client_command_prefix))
@@ -110,18 +99,33 @@ class Game:
             client_command_prefix, client_command_prefix))
         self.DISCARD_MSG = (
                 'Discard cards: %sdiscard <repeated:card number>\n\tExample: %sdiscard 1\n\tInfo: Cards are specified '
-                'by their number; use %shand to see them.\n\tYou can pass multiple card numbers at once.\n' % (
-            client_command_prefix, client_command_prefix, client_command_prefix))
+                'by their number; use %shand to see them.\n\tYou can pass multiple card numbers at once.\n'
+                'If no cards are presented, all cards in your hand will be discarded.\n' % (
+                    client_command_prefix, client_command_prefix, client_command_prefix))
         self.TAG_MSG = ('Tag a card: %stag <card number> <tag>\n\tExample: %stag 1 azzie commando\n' % (
             client_command_prefix, client_command_prefix))
         self.CLEAR_TAG_MSG = (
                 'Remove tags from cards: %sclear_tag <optional repeated:card number>\n\tExample: %sclear_tag 1 2 '
                 '3\n\tInfo: if no card numbers are provided, clears tags from all the user\'s cards.' % (
-            client_command_prefix, client_command_prefix))
+                    client_command_prefix, client_command_prefix))
+        self.COMPARE_MSG = (
+                'Compare: %scompare <roll> <target number>\n\tExample: %scompare 10 4\n\tInfo: Compares the given roll'
+                'to the given target number (TN), and computes the number of raises the roll achieves.' % (
+                    client_command_prefix, client_command_prefix))
 
-        self.usage_messages = [self.ROLL_MSG, self.DRAW_MSG, self.COUNTDOWN_MSG, self.COUNTDOWN_START_MSG,
-                               self.COUNTDOWN_NEXT_MSG, self.HAND_MSG, self.SHUFFLE_MSG, self.CARDS_LEFT_MSG,
-                               self.DISCARD_MSG, self.TAG_MSG, self.CLEAR_TAG_MSG]
+        self.usage_messages = [self.CARDS_LEFT_MSG, self.COMPARE_MSG, self.COUNTDOWN_MSG, self.COUNTDOWN_START_MSG,
+                               self.COUNTDOWN_NEXT_MSG, self.CLEAR_TAG_MSG, self.DISCARD_MSG, self.DRAW_MSG,
+                               self.HAND_MSG,
+                               self.ROLL_MSG, self.SHUFFLE_MSG, self.TAG_MSG]
+
+    def compare(self, *args) -> str:
+        if len(args) != 2 or not Utils.int_format(args[0]) or not Utils.int_format(args[1]):
+            return self.COMPARE_MSG
+
+        roll = int(args[0])
+        tn = int(args[1])
+        msg = str(roll) + ' vs. ' + str(tn) + ' = '
+        return msg + count_raises(roll, tn) + '!'
 
     def parse_dice(self, dieStr):
         dice = []
@@ -221,7 +225,7 @@ class Game:
                 result_string += str(best + mod)
 
             if tn_found:
-                result_string += ', scoring a ' + count_raises(best+mod, tn) + ' against TN ' + str(tn)
+                result_string += ', scoring a ' + count_raises(best + mod, tn) + ' against TN ' + str(tn)
 
             result_string += '!'
 
