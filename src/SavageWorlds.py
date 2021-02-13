@@ -14,7 +14,7 @@ def judge_roll(*args) -> str:
     roll = int(args[0])
     tn = int(args[1])
     msg = str(roll) + ' vs. ' + str(tn) + ' = '
-    return msg + count_raises(roll, tn)
+    return msg + count_raises(roll, tn) + '!'
 
 
 def count_raises(roll, tn):
@@ -25,7 +25,9 @@ def count_raises(roll, tn):
     elif raises == 0:
         msg += 'hit!'
     else:
-        msg = 'hit with ' + str(raises) + ' raises!'
+        msg = 'hit with ' + str(raises) + ' raise'
+        if raises > 1:
+            msg += 's'
     return msg
 
 
@@ -154,7 +156,7 @@ class Game:
                 mod -= int(arg[1:])
             elif arg == 'dam' or arg == 'damage' or arg == 'dmg':
                 damage_mode = True
-            elif arg.lower() == 'tn' or arg.lower() == 'target':
+            elif arg.lower() == 'tn' or arg.lower() == 'target' or arg.lower() == 'armor' or arg.lower() == 'av':
                 tn_mode = True
             elif tn_mode and Utils.int_format(arg):
                 tn = int(arg)
@@ -211,13 +213,17 @@ class Game:
             for i in range(1, len(rolls)):
                 best = max(best, rolls[i])
 
-            if not damage_mode:
-                result_string += user + ' rolled a ' + str(best + mod)
-                if tn_found:
-                    result_string += ', scoring a ' + count_raises(best+mod, tn)
-                result_string += '\n'
+            result_string += user + ' rolled '
+
+            if damage_mode:
+                result_string += str(damage) + ' damage'
             else:
-                result_string += user + ' rolled ' + str(damage) + ' damage'
+                result_string += str(best + mod)
+
+            if tn_found:
+                result_string += ', scoring a ' + count_raises(best+mod, tn) + ' against TN ' + str(tn)
+
+            result_string += '!'
 
         return result_string
 
