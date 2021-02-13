@@ -1,20 +1,19 @@
-import discord
-import asyncio
-from discord.ext.commands import Bot
-from discord.ext import commands
-from discord import Status
+import operator as op
 import platform
 import random
 from enum import Enum
 from functools import reduce
-from PlayingCards import Deck
-from Die import Die
-import Utils
+
+import discord
+from discord import Status
+from discord.ext import commands
+from discord.ext.commands import Bot
+
 import SavageWorlds
 from Joke import FortuneCookie
 from Varrick import Varrick
 
-import operator as op
+
 def nCr(n, r):
     r = min(r, n-r)
     numer = reduce(op.mul, range(n, n-r, -1), 1)
