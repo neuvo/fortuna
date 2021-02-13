@@ -30,7 +30,7 @@ USAGE_MSG = "Usage: %sroll <num dice> <difficulty>" % client.command_prefix
 USAGE_MSG_SR = "Usage: %sroll <num dice>" % client.command_prefix
 
 USAGE_MSG_SW = (
-            'Usage: %sroll <die1> <optional:die2> <optional:mod>\nExample: %sroll 1d8 1d6 +2\nNote: mod must have a + or a - in front. Dice and mods may be in any order.\n' % (
+        'Usage: %sroll <die1> <optional:die2> <optional:mod>\nExample: %sroll 1d8 1d6 +2\nNote: mod must have a + or a - in front. Dice and mods may be in any order.\n' % (
     client.command_prefix, client.command_prefix))
 
 # to be used only for testing. Users shouldn't see this message.
@@ -457,6 +457,11 @@ async def planeshift(ctx, *args):
 async def nickname(ctx, *args):
     await ctx.send(varrick.update_nick(ctx, *args))
 
+
+@commands.command(pass_context=True)
+async def compare(ctx, *args):
+    await ctx.send(SavageWorlds.judge_roll(*args))
+
 # Usage command:
 @commands.command()
 async def usage(ctx):
@@ -478,6 +483,7 @@ client.add_command(hand)
 client.add_command(nickname)
 client.add_command(planeshift)
 client.add_command(r)
+client.add_command(compare)
 client.add_command(roll)
 client.add_command(set_game)
 client.add_command(shuffle)

@@ -1,23 +1,41 @@
-import discord
-import asyncio
-from discord.ext.commands import Bot
-from discord.ext import commands
-from discord import Status
+import Utils
 from Die import Die
 from PlayingCards import Deck
-import Utils
 
 MEATSPACE = 'meatspace'
 ASTRAL = 'astral'
 MATRIX = 'matrix'
 
+
+def judge_roll(*args) -> str:
+    if len(args) != 2 or not Utils.int_format(args[0]) or not Utils.int_format(args[1]):
+        return 'Usage: /compare roll TN'
+
+    roll = int(args[0])
+    tn = int(args[1])
+    msg = str(roll) + ' vs. ' + str(tn) + ' = '
+    return msg + count_raises(roll, tn)
+
+
+def count_raises(roll, tn):
+    msg = ''
+    raises = (roll - tn) // 4
+    if raises < 0:
+        msg += 'miss!'
+    elif raises == 0:
+        msg += 'hit!'
+    else:
+        msg = 'hit with ' + str(raises) + ' raises!'
+    return msg
+
+
 class Game:
-    CFG_PATH='../data/savageworlds.cfg'
-    
+    CFG_PATH = '../data/savageworlds.cfg'
+
     config = {}
 
     # sets of card numbers in each plane
-    planes = {MEATSPACE:set(),ASTRAL:set(),MATRIX:set()}
+    planes = {MEATSPACE: set(), ASTRAL: set(), MATRIX: set()}
 
     class initiative_tracker:
         current = -1
@@ -63,28 +81,51 @@ class Game:
             self.config[pair[0]] = pair[1]
 
         self.the_deck = Deck()
-        self.initUsage(client_command_prefix)
+        self.init_usage(client_command_prefix)
 
-    def initUsage(self, client_command_prefix):
-        self.ROLL_MSG=('Roll dice: %sroll <die1> <optional:die2> <optional:mod>\n\tExample: %sroll 1d8 1d6 +2\n\tInfo: mod must have a + or a - in front, and be separated by a space. Dice and mods may be in any order.\n' % (client_command_prefix, client_command_prefix))
-        self.DRAW_MSG=('Draw card(s): %sdraw <optional:number> <optional:tag>\n\tExample: %sdraw 2\n\tInfo: draws 1 card if no number is supplied. Optional tag can be used to track cards belonging to different characters, but the same player.\n' % (client_command_prefix, client_command_prefix))
-        self.COUNTDOWN_MSG=('See the countdown order: %scountdown\n\tExample: %scountdown\n\tInfo: presents every user\'s cards in descending order.\n' % (client_command_prefix, client_command_prefix))
-        self.COUNTDOWN_START_MSG=('Start or restart the countdown order: %scountdown start\n\tInfo: moves the initiative tracker to the top of the round.\n' % (client_command_prefix))
-        self.COUNTDOWN_NEXT_MSG=('Move the initiative tracker one step: %scountdown next\n\tInfo: If the tracker is uninitialized, next will automatically initialize it and move the tracker to the first player.\n' % (client_command_prefix))
-        self.HAND_MSG=('See a user\'s current hand: %shand <optional:username>\n\tExample: %shand neuvo\#1301\n' % (client_command_prefix, client_command_prefix))
-        self.SHUFFLE_MSG=('Return all cards to the deck and shuffle: %sshuffle\n\tExample: %sshuffle\n\tInfo: Only the DM may shuffle the deck.\n' % (client_command_prefix, client_command_prefix))
-        self.CARDS_LEFT_MSG=('Count how many cards remain in the deck: %scardsleft\n\tExample: %scardsLeft\n' % (client_command_prefix, client_command_prefix))
-        self.DISCARD_MSG=('Discard cards: %sdiscard <repeated:card number>\n\tExample: %sdiscard 1\n\tInfo: Cards are specified by their number; use %shand to see them.\n\tYou can pass multiple card numbers at once.\n' % (client_command_prefix, client_command_prefix,client_command_prefix))
-        self.TAG_MSG=('Tag a card: %stag <card number> <tag>\n\tExample: %stag 1 azzie commando\n' % (client_command_prefix,client_command_prefix))
-        self.CLEAR_TAG_MSG=('Remove tags from cards: %sclear_tag <optional repeated:card number>\n\tExample: %sclear_tag 1 2 3\n\tInfo: if no card numbers are provided, clears tags from all the user\'s cards.' % (client_command_prefix,client_command_prefix))
+    def init_usage(self, client_command_prefix):
+        self.ROLL_MSG = ('Roll dice: %sroll <die1> <optional:die2> <optional:mod>\n\tExample: %sroll 1d8 1d6 '
+                         '+2\n\tInfo: mod must have a + or a - in front, and be separated by a space. Dice and mods '
+                         'may '
+                         'be in any order.\n' % (client_command_prefix, client_command_prefix))
+        self.DRAW_MSG = ('Draw card(s): %sdraw <optional:number> <optional:tag>\n\tExample: %sdraw 2\n\tInfo: draws 1 '
+                         'card if no number is supplied. Optional tag can be used to track cards belonging to different '
+                         'characters, but the same player.\n' % (client_command_prefix, client_command_prefix))
+        self.COUNTDOWN_MSG = ('See the countdown order: %scountdown\n\tExample: %scountdown\n\tInfo: presents every '
+                              'user\'s cards in descending order.\n' % (client_command_prefix, client_command_prefix))
+        self.COUNTDOWN_START_MSG = ('Start or restart the countdown order: %scountdown start\n\tInfo: moves the '
+                                    'initiative tracker to the top of the round.\n' % (client_command_prefix))
+        self.COUNTDOWN_NEXT_MSG = ('Move the initiative tracker one step: %scountdown next\n\tInfo: If the tracker is '
+                                   'uninitialized, next will automatically initialize it and move the tracker to the '
+                                   'first player.\n' % (client_command_prefix))
+        self.HAND_MSG = ('See a user\'s current hand: %shand <optional:username>\n\tExample: %shand neuvo#1301\n' % (
+            client_command_prefix, client_command_prefix))
+        self.SHUFFLE_MSG = (
+                'Return all cards to the deck and shuffle: %sshuffle\n\tExample: %sshuffle\n\tInfo: Only the DM '
+                'may shuffle the deck.\n' % (
+                    client_command_prefix, client_command_prefix))
+        self.CARDS_LEFT_MSG = ('Count how many cards remain in the deck: %scardsleft\n\tExample: %scardsLeft\n' % (
+            client_command_prefix, client_command_prefix))
+        self.DISCARD_MSG = (
+                'Discard cards: %sdiscard <repeated:card number>\n\tExample: %sdiscard 1\n\tInfo: Cards are specified '
+                'by their number; use %shand to see them.\n\tYou can pass multiple card numbers at once.\n' % (
+            client_command_prefix, client_command_prefix, client_command_prefix))
+        self.TAG_MSG = ('Tag a card: %stag <card number> <tag>\n\tExample: %stag 1 azzie commando\n' % (
+            client_command_prefix, client_command_prefix))
+        self.CLEAR_TAG_MSG = (
+                'Remove tags from cards: %sclear_tag <optional repeated:card number>\n\tExample: %sclear_tag 1 2 '
+                '3\n\tInfo: if no card numbers are provided, clears tags from all the user\'s cards.' % (
+            client_command_prefix, client_command_prefix))
 
-        self.usage_messages = [self.ROLL_MSG,self.DRAW_MSG,self.COUNTDOWN_MSG,self.COUNTDOWN_START_MSG,self.COUNTDOWN_NEXT_MSG,self.HAND_MSG,self.SHUFFLE_MSG,self.CARDS_LEFT_MSG,self.DISCARD_MSG,self.TAG_MSG,self.CLEAR_TAG_MSG]
+        self.usage_messages = [self.ROLL_MSG, self.DRAW_MSG, self.COUNTDOWN_MSG, self.COUNTDOWN_START_MSG,
+                               self.COUNTDOWN_NEXT_MSG, self.HAND_MSG, self.SHUFFLE_MSG, self.CARDS_LEFT_MSG,
+                               self.DISCARD_MSG, self.TAG_MSG, self.CLEAR_TAG_MSG]
 
     def parse_dice(self, dieStr):
         dice = []
         general_die = Utils.parse_die(dieStr)
         for i in range(general_die.num):
-            dice.append(Die(1,general_die.sides))
+            dice.append(Die(1, general_die.sides))
         return dice
 
     def get_plane_names(self):
@@ -96,12 +137,14 @@ class Game:
     def roll(self, user, args):
         result_string = ''
         if len(args) == 0:
-            return USAGE_MSG_SW
+            return self.ROLL_MSG
 
-        best = 0
         dice = []
         mod = 0
-        damageMode = False
+        damage_mode = False
+        tn_found = False
+        tn_mode = False
+        tn = 4
         for arg in args:
             if len(arg) == 0:
                 continue
@@ -110,7 +153,13 @@ class Game:
             elif arg[0] == '-':
                 mod -= int(arg[1:])
             elif arg == 'dam' or arg == 'damage' or arg == 'dmg':
-                damageMode = True
+                damage_mode = True
+            elif arg.lower() == 'tn' or arg.lower() == 'target':
+                tn_mode = True
+            elif tn_mode and Utils.int_format(arg):
+                tn = int(arg)
+                tn_mode = False
+                tn_found = True
             else:
                 currDice = self.parse_dice(arg)
                 dice = dice + currDice
@@ -121,9 +170,9 @@ class Game:
         snakeEyes = 0
         rolls = []
 
-        result_string += user + ' rolls '
-        if damageMode:
-            result_string += 'for damage'
+        result_string += user + ' rolls'
+        if damage_mode:
+            result_string += ' for damage'
         result_string += '!\n'
 
         damage = mod
@@ -134,7 +183,7 @@ class Game:
                 result_string += 'Die must have at least 2 sides, skipping...\n'
                 continue
 
-            result_string += 'Rolling '+str(die.num)+'d'+str(die.sides)+': '
+            result_string += 'Rolling ' + str(die.num) + 'd' + str(die.sides) + ': '
             roll = die.roll()
 
             result_string += str(roll)
@@ -151,7 +200,7 @@ class Game:
             rolls.append(total)
             damage += total
 
-        if snakeEyes == len(rolls) and not damageMode:
+        if snakeEyes == len(rolls) and not damage_mode:
             result_string += user + ' fumbled!\n'
         else:
             if len(rolls) == 0:
@@ -159,11 +208,14 @@ class Game:
                 return result_string
 
             best = rolls[0]
-            for i in range(1,len(rolls)):
-                best = max(best,rolls[i])
+            for i in range(1, len(rolls)):
+                best = max(best, rolls[i])
 
-            if not damageMode:
-                result_string += user + ' rolled a ' + str(best+mod)
+            if not damage_mode:
+                result_string += user + ' rolled a ' + str(best + mod)
+                if tn_found:
+                    result_string += ', scoring a ' + count_raises(best+mod, tn)
+                result_string += '\n'
             else:
                 result_string += user + ' rolled ' + str(damage) + ' damage'
 
@@ -188,22 +240,22 @@ class Game:
         if tag_start < len(args):
             tag = args[tag_start]
 
-        for i in range(tag_start+1,len(args)):
+        for i in range(tag_start + 1, len(args)):
             tag = tag + ' ' + args[i]
 
         if self.the_deck.empty():
             return 'The deck is empty! %s cannot draw.' % username
 
-        card = self.the_deck.drawNum(username,tag)
+        card = self.the_deck.drawNum(username, tag)
         self.planes[plane].add(card.num)
         outstring = '%s draws %s' % (username, card.toString())
 
-        for i in range(1,num_cards):
+        for i in range(1, num_cards):
             if self.the_deck.empty():
                 outstring += '; no more cards remaining.'
                 break
             else:
-                card = self.the_deck.drawNum(username,tag)
+                card = self.the_deck.drawNum(username, tag)
                 self.planes[plane].add(card.num)
                 outstring += ', ' + card.toString()
 
@@ -281,7 +333,7 @@ class Game:
 
         return result_string
 
-    def wrap_countdown_line(self,card_num,line):
+    def wrap_countdown_line(self, card_num, line):
         if self.init_tracker.initialized() and self.init_tracker.curr() == card_num:
             line = '>>' + line + '<<'
         line += '\n'
@@ -301,7 +353,7 @@ class Game:
             handStr.append(card.toString() + ' (' + self.get_plane(card.num).upper() + ')')
         result_string = '%s holds:\n' % username
         for i in range(len(hand)):
-            result_string += str(i+1) + ': ' + handStr[i] + '\n'
+            result_string += str(i + 1) + ': ' + handStr[i] + '\n'
         result_string += '\n'
         return result_string
 
@@ -321,9 +373,10 @@ class Game:
 
         for arg in args:
             if Utils.int_format(arg):
-                card_index = int(arg)-1
-                if card_index not in range(0,len(self.the_deck.hands[username])):
-                    result_string += '%d is out of bounds. %s holds cards numbered 1 to %d\n' % (card_index+1, username, len(self.the_deck.hands[username]))
+                card_index = int(arg) - 1
+                if card_index not in range(0, len(self.the_deck.hands[username])):
+                    result_string += '%d is out of bounds. %s holds cards numbered 1 to %d\n' % (
+                        card_index + 1, username, len(self.the_deck.hands[username]))
                 elif not self.the_deck.hands[username][card_index] in discard_cards:
                     discard_cards.append(self.the_deck.hands[username][card_index])
             else:
@@ -332,7 +385,7 @@ class Game:
                         discard_cards.append(card)
 
         for discard_card in discard_cards:
-            self.the_deck.discard(username,discard_card)
+            self.the_deck.discard(username, discard_card)
             result_string += '%s discards %s\n' % (username, discard_card.toString())
 
         if len(result_string) == 0:
@@ -342,21 +395,21 @@ class Game:
 
     def discard_pile(self):
         result_string = 'Discard pile contains:\n'
-        for i in range(0,len(self.the_deck.discard_pile)):
+        for i in range(0, len(self.the_deck.discard_pile)):
             discard = self.the_deck.discard_pile[i]
-            result_string += '%d: %s\n' % (i,discard.toString())
+            result_string += '%d: %s\n' % (i, discard.toString())
 
         return result_string
 
     def shuffle(self, username):
         # if (username != self.config['DM']):
         #     return 'Only the DM (%s) may shuffle the deck' % (self.config['DM'])
-        
+
         self.the_deck.shuffle()
         return '%s shuffles the deck' % (username)
 
-    def cardsLeft(self):
-        return '%d cards remain in the deck' % the_deck.cardsLeft
+    def cards_left(self):
+        return '%d cards remain in the deck' % self.the_deck.cardsLeft()
 
     def tag(self, username, args):
         if len(args) < 2 or not Utils.int_format(args[0]):
@@ -367,18 +420,19 @@ class Game:
 
         card_index = int(args[0])
 
-        if card_index-1 not in range(0,len(self.the_deck.hands[username])):
-            return '%d is out of bounds. %s holds cards numbered 1 to %d' % (card_index, username, len(self.the_deck.hands[username]))
+        if card_index - 1 not in range(0, len(self.the_deck.hands[username])):
+            return '%d is out of bounds. %s holds cards numbered 1 to %d' % (
+                card_index, username, len(self.the_deck.hands[username]))
 
         tag = ''
-        for i in range(1,len(args)):
+        for i in range(1, len(args)):
             if len(tag) > 0:
                 tag += ' '
             tag += args[i]
 
-        self.the_deck.hands[username][card_index-1].tag = tag
+        self.the_deck.hands[username][card_index - 1].tag = tag
 
-        return '%s tags %s' % (username, self.the_deck.hands[username][card_index-1].toString())
+        return '%s tags %s' % (username, self.the_deck.hands[username][card_index - 1].toString())
 
     def clear_tag(self, username, args):
         if username not in self.the_deck.hands:
@@ -389,20 +443,21 @@ class Game:
         result_string = ''
 
         if len(args) == 0:
-            for i in range(0,len(self.the_deck.hands[username])):
+            for i in range(0, len(self.the_deck.hands[username])):
                 target_cards.add(i)
         else:
             for arg in args:
                 if not Utils.int_format(arg):
                     result_string += 'Ignoring non-integer argument %s...\n' % arg
-                elif int(arg)-1 not in range(0,len(self.the_deck.hands[username])):
+                elif int(arg) - 1 not in range(0, len(self.the_deck.hands[username])):
                     result_string += 'Ignoring out of bounds argument %s...\n' % arg
                 else:
-                    target_cards.add(int(arg)-1)
+                    target_cards.add(int(arg) - 1)
 
         for target_card in target_cards:
             self.the_deck.hands[username][target_card].tag = ''
-            result_string += '%s cleared tag from %s\n' % (username, self.the_deck.hands[username][target_card].toString())
+            result_string += '%s cleared tag from %s\n' % (
+                username, self.the_deck.hands[username][target_card].toString())
 
         return result_string
 
@@ -418,7 +473,7 @@ class Game:
 
         for arg in args:
             if Utils.int_format(arg) and int(arg) not in planeshifts.keys():
-                card = self.the_deck.hands[username][int(arg)-1]
+                card = self.the_deck.hands[username][int(arg) - 1]
                 planeshifts[card] = ''
             elif arg.lower() in self.planes:
                 for card in planeshifts:
@@ -427,7 +482,6 @@ class Game:
 
         for card in planeshifts:
             dest_plane = planeshifts[card]
-            src_plane = ''
             if dest_plane == '':
                 result_string += 'No destination plane given for %s, skipping...\n' % card.toString()
                 continue
@@ -436,7 +490,6 @@ class Game:
                 print(self.planes[plane])
                 if card.num in self.planes[plane]:
                     self.planes[plane].remove(card.num)
-                    src_plane = plane
                     break
 
             self.planes[dest_plane].add(card.num)
@@ -444,23 +497,18 @@ class Game:
 
         return result_string
 
-    def get_plane(self, cardnum):
-        if cardnum in self.planes['meatspace']:
+    def get_plane(self, card_num):
+        if card_num in self.planes['meatspace']:
             return 'meatspace'
-        elif cardnum in self.planes['astral']:
+        elif card_num in self.planes['astral']:
             return 'astral'
-        elif cardnum in self.planes['matrix']:
+        elif card_num in self.planes['matrix']:
             return 'matrix'
         else:
             return ''
 
     def usage(self):
-        returnme = ''
+        return_me = ''
         for usage_msg in self.usage_messages:
-            returnme += usage_msg
-        return returnme
-
-
-
-
-
+            return_me += usage_msg
+        return return_me
