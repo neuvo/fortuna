@@ -1,3 +1,4 @@
+import asyncio
 import operator as op
 import platform
 import random
@@ -462,14 +463,15 @@ async def nickname(ctx, *args):
 async def compare(ctx, *args):
     await ctx.send(SavageWorlds.compare(*args))
 
+
 # Usage command:
 @commands.command()
 async def usage(ctx):
     if current_game == Game.savageWorlds:
-        await ctx.send(savageWorlds.usage())
+        for usage_msg in savageWorlds.usage_messages:
+            await ctx.send(usage_msg)
     else:
         await ctx.send(USAGE_MSG)
-
 
 client.add_command(analyze)
 client.add_command(cardsleft)

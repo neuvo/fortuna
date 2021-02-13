@@ -103,8 +103,8 @@ class Game:
                 'Discard cards: %sdiscard <repeated:card number/tag> <optional:-t flag> <optional:tag(s)>\n\tExample: '
                 '%sdiscard 1 -t red samurai\n\tInfo: discard all cards'
                 ' in your hand matching the provided numbers and tags; use %shand to see the numbers.\n\t'
-                'You can pass multiple card numbers at once by separating the numbers/tags by a space.\n'
-                'The optional \"-t\" flag allows you to enter multiple words as one tag.\nIn the example, the -t flag'
+                'You can pass multiple card numbers at once by separating the numbers/tags by a space.\n\t'
+                'The optional \"-t\" flag allows you to enter multiple words as one tag.\n\tIn the example, the -t flag'
                 'commands a discard of all cards tagged "red samurai"; without the flag, the command will discard all'
                 'cards labeled "red" and all cards labeled "samurai".'
                 'If no cards are specified, all cards in your hand will be discarded.\n' % (
