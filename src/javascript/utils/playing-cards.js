@@ -85,13 +85,44 @@ class Deck {
             this.hands.set(user, []);
         }
 
-        this.hands.get(user).concat(newCards);
+        this.hands.set(user, this.hands.get(user).concat(newCards));
 
-        if (plane != null) {
-            this.planesMap.get(plane).concat(newCards);
+        if (plane == null) {
+            plane = planes[planes.length-1];
         }
 
+        this.planesMap.set(plane, this.planesMap.get(plane).concat(newCards));
+
         return newCards;
+    }
+
+    /**
+     * Returns the cards belonging to a given user
+     * @param {string} user the player whose hand is to be viewed
+     * @returns list of cards belonging to the player
+     */
+    viewHand(user) {
+        console.log(this.hands);
+        if (!this.hands.has(user)) {
+            return [];
+        } else {
+            return this.hands.get(user);
+        }
+    }
+
+    /**
+     * Finds a card's plane
+     * @param {Card} card the card to locate
+     * @returns string identifying the plane in which the card resides, or null if the card has not been drawn
+     */
+    getPlane(card) {
+        console.log(this.planesMap);
+        for (let plane of planes) {
+            if (this.planesMap.get(plane).includes(card)) {
+                return plane;
+            }
+        }
+        return null;
     }
 };
 
