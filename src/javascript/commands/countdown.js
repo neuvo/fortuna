@@ -16,9 +16,12 @@ function handleCountdown() {
     for (let plane of planes) {
         let planeCards = theDeck.getCardsByPlane(plane);
         if (planeCards.length > 0){
-            planeCards.sort();
+            planeCards.sort(function(cardA, cardB) {
+                return cardB.id - cardA.id;
+            });
+            console.log(plane + ' holds ' + planeCards);
             outputMsg += '>>>'+plane.toUpperCase()+'<<<\n';
-            for(let i = planeCards.length-1; i >= 0; --i) {
+            for(let i = 0; i < planeCards.length; ++i) {
                 outputMsg += theDeck.getHolder(planeCards[i]) + ' holds ' + planeCards[i].toString() + '\n';
             }
         }

@@ -1,3 +1,5 @@
+
+
 let sortedSuits = ['Clubs', 'Diamonds', 'Hearts', 'Spades'];
 let sortedRanks = ['Deuce', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King', 'Ace'];
 
@@ -13,9 +15,8 @@ class Deck {
     constructor() {
         this.hands = new Map();
         this.availableCards = [];
-        this.shuffle();
         this.planesMap = new Map();
-        this.initPlanes();
+        this.shuffle();
     }
     
     // private functions
@@ -60,6 +61,7 @@ class Deck {
      */
     shuffle() {
         this.hands.clear();
+        this.initPlanes();
         this.availableCards.splice(0, this.availableCards.length); // clear the available cards
         for (let id = 0; id < 54; ++id) {
             this.availableCards.push(new Card(id, null));
@@ -152,7 +154,7 @@ class Card {
         if (this.id >= 52) {
             selfString += ':black_joker:';
         } else {
-            selfString += sortedRanks[this.id % 13] + ' of ' + sortedSuits[Math.floor(this.id / 13)];
+            selfString += sortedRanks[Math.floor(this.id/4)] + ' of ' + sortedSuits[Math.floor(this.id%4)];
         }
 
         if (this.tag != null) {

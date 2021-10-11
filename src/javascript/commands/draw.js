@@ -48,6 +48,7 @@ function handleDraw(userName, numCards, tag, plane) {
 
     if (cardsDrawn.length < numCards) {
         outputMsg += 'Deck ran out of cards\n'
+        return outputMsg;
     }
 
     outputMsg += userName + ' drew'
