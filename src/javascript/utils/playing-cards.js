@@ -1,6 +1,7 @@
 let sortedSuits = ['Clubs', 'Diamonds', 'Hearts', 'Spades'];
 let sortedRanks = ['Deuce', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King', 'Ace'];
-planes = ['matrix','astral','meatspace'];
+
+let planes = ['matrix','astral','meatspace'];
 
 exports.planes = planes;
 
@@ -120,6 +121,19 @@ class Deck {
         for (let plane of planes) {
             if (this.planesMap.get(plane).includes(card)) {
                 return plane;
+            }
+        }
+        return null;
+    }
+
+    getCardsByPlane(plane) {
+        return this.planesMap.get(plane);
+    }
+
+    getHolder(card) {
+        for (let user of this.hands.keys()) {
+            if (this.hands.get(user).includes(card)) {
+                return user;
             }
         }
         return null;
