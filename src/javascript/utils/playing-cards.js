@@ -57,6 +57,65 @@ class Deck {
     }
 
     /**
+     * Discards a card from the user's hand with the given card ID number
+     * @param {string} user Username
+     * @param {integer} cardId Card id number to discard
+     * @returns none
+     */
+    discardById(user, cardId) {
+        if (this.hands.has(user)) {
+            for (let card of this.hands.get(user)) {
+                if (card.id == cardId) {
+                    this.banish(card);
+                    this.hands.get(user).splice(this.hands.get(user).indexOf(card),1);
+                    return card;
+                }
+            }
+        }
+    }
+
+    /**
+     * Discards all cards from user's hand with a tag matching the given tag
+     * @param {string} user Username
+     * @param {string} tag Tag of cards to discard
+     */
+    discardByTag(user, tag) {
+        let discards = [];
+        if (this.hands.has(user)) {
+            let toDiscard = [];
+            for (let card of this.hands.get(user)) {
+                if (card.tag == tag) {
+                    toDiscard.push(this.hands.get(user).indexOf(card));
+                    discards.push(card);
+                    this.banish(card);
+                }
+            }
+            for (let index of toDiscard) {
+                this.hands.get(user).splice(index, 1);
+            }
+        }
+        return discards;
+    }
+
+    discard(user) {
+        if (this.hands.has(user)) {
+            for (let card of this.hands.get(user)) {
+                this.banish(card);
+            }
+            this.hands.delete(user);
+        }
+    }
+
+    banish(card) {
+        for (let plane of this.planesMap.keys()) {
+            if (this.planesMap.get(plane).includes(card)) {
+                let index = this.planesMap.get(plane).indexOf(card);
+                this.planesMap.get(plane).splice(index,1);
+            }
+        }
+    }
+
+    /**
      * Shuffles the deck, clearing all hands and planes and restoring all cards to the deck with tags wiped
      */
     shuffle() {
@@ -149,7 +208,6 @@ class Card {
     }
 
     toString() {
-        console.log('Stringifying id # ' + this.id);
         let selfString = '';
         if (this.id >= 52) {
             selfString += ':black_joker:';
@@ -159,6 +217,21 @@ class Card {
 
         if (this.tag != null) {
             selfString += ' **' + this.tag + '**';
+        }
+
+        return selfString;
+    }
+
+    toStringPlain() {
+        let selfString = '';
+        if (this.id >= 52) {
+            selfString += ':black_joker:';
+        } else {
+            selfString += sortedRanks[Math.floor(this.id/4)] + ' of ' + sortedSuits[Math.floor(this.id%4)];
+        }
+
+        if (this.tag != null) {
+            selfString += ' (' + this.tag + ')';
         }
 
         return selfString;

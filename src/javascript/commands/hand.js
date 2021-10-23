@@ -1,4 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
+const { MessageActionRow, MessageSelectMenu } = require('discord.js');
 const { theDeck } = require('../utils/playing-cards');
 
 module.exports = {
@@ -6,7 +7,8 @@ module.exports = {
 		.setName('hand')
 		.setDescription('Shows your current hand'),
 	async execute(interaction) {
-		await interaction.reply(handleHand(interaction.user.tag));
+		await interaction.reply({
+            content: handleHand(interaction.user.tag)});
 	},
 };
 

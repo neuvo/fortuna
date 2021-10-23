@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { deck, theDeck, planes } = require('../utils/playing-cards');
+const { Card, theDeck, planes } = require('../utils/playing-cards');
 
 module.exports = {
 	data: new SlashCommandBuilder()

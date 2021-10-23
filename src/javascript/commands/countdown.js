@@ -28,7 +28,7 @@ function handleCountdown() {
     }
 
     if (outputMsg.length == 0) {
-        outputMsg = 'No cards have been drawn, countdown aborted';
+        outputMsg = 'No cards held';
     }
     return outputMsg;
 }
