@@ -1,4 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
+const { MessageButton, MessageActionRow } = require('discord.js');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('roll')
@@ -15,10 +16,16 @@ module.exports = {
             .addChoice('damage', 'damage')
             .addChoice('trait', 'trait')),
     async execute(interaction) {
-        await interaction.reply(handleRolls(interaction.user.tag, 
-            interaction.options.getString('dice'), 
-            interaction.options.getString('mode'),
-            interaction.options.getInteger('bonus')))
+        await interaction.reply({
+            content: handleRolls(interaction.user.tag, 
+                interaction.options.getString('dice'), 
+                interaction.options.getString('mode'),
+                interaction.options.getInteger('bonus')),
+            components: getRerollButtons(interaction.user.tag, 
+                interaction.options.getString('dice'), 
+                interaction.options.getString('mode'),
+                interaction.options.getInteger('bonus'))
+        });
     },
 };
 
@@ -71,10 +78,19 @@ function handleRolls(userTag, diceStr, mode, bonus) {
         rollTally += bonus;
     }
 
-    output += userTag + ' rolls ' + (rollTally).toString() + (isDamage ? ' damage' : '');
+    output += userTag + ' rolls **' + (rollTally).toString() + '**' + (isDamage ? ' damage' : '');
     if (rollTally == 1 && !isDamage) {
         output += ' **GLITCH**'
     }
+
+    if (bonus > 0) {
+        output += ' (+' + bonus.toString() + ' bonus)';
+    }
+
+    if (bonus < 0) {
+        output += ' (' + bonus.toString() + ' penalty)';
+    }
+
     return output;
 }
 
@@ -155,6 +171,45 @@ function parseDiceStr(diceStr) {
     return parsedDiceStr;
 }
 
+function getRerollButtons(userName, diceArg, modeArg, bonusArg) {
+    if (modeArg == null) {
+        modeArg = 'trait';
+    }
+
+    if (bonusArg == null) {
+        bonusArg = 0;
+    }
+    
+    let customId = 'reroll#' + userName + '#' + diceArg + '#' + modeArg + '#' + bonusArg.toString();
+    
+    return [new MessageActionRow().addComponents(
+            [new MessageButton().setCustomId(customId)
+                .setLabel('Reroll')
+                .setStyle('PRIMARY')
+        ])];
+}
+
+function respondToReroll(interaction) {
+    let customId = interaction.component.customId;
+    let splitId = customId.split('#');
+    // split format: reroll, userName text, userName numbers, diceArg, modeArg, bonusArg
+    let userTag = splitId[1] + '#' + splitId[2];
+    let diceArg = splitId[3];
+    let modeArg = splitId[4];
+    let bonusArg = parseInt(splitId[5]);
+    if (interaction.user.tag != userTag) {
+        return {
+            content: interaction.message.content + '\n Wrong user attempted reroll',
+            components: interaction.message.components
+        }
+    }
+
+    return {
+        content: interaction.message.content + '\n' + handleRolls(userTag, diceArg, modeArg, bonusArg),
+        components: interaction.components
+    };
+}
+
 class DiceResult {
     constructor(diceArg) {
         this.arg = diceArg;
@@ -167,11 +222,11 @@ class DiceResult {
     }
 
     toString() {
-        let output = '';
+        let output = '**' + this.total.toString() + '** (';
         for (let result of this.results) {
-            output = output + result.toString() + ' ';
+            output = output + result.toString() + ', ';
         }
-        output += '(' + this.total.toString() + ')';
+        output = output.substring(0, output.length-2) + ')';
         return output;
     }
 }
@@ -186,3 +241,6 @@ class DiceArg {
         return this.quantity + 'd' + this.sides;
     }
 }
+
+
+module.exports.respondToReroll=respondToReroll;

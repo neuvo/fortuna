@@ -3,6 +3,7 @@ const { Client, Collection, Intents } = require('discord.js');
 const { token } = require('./config.json');
 const { respondToDiscard: respondToDiscard } = require('./commands/discard');
 const { respondToRetag: respondToRetag } = require('./commands/retag');
+const { respondToReroll: respondToReroll } = require('./commands/roll');
 
 const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
 
@@ -26,6 +27,8 @@ client.on('interactionCreate', async interaction => {
 			return interaction.update(respondToDiscard(interaction));
 		} else if (interaction.component.customId.includes('retag')) {
 			return interaction.update(respondToRetag(interaction));
+		} else if (interaction.component.customId.includes('reroll')) {
+			return interaction.update(respondToReroll(interaction));
 		} else {
 			return interaction.reply('Unrecognized button');
 		}
