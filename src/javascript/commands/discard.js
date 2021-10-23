@@ -10,7 +10,6 @@ module.exports = {
         .addStringOption(option => option.setName('mode')
             .setDescription('Discards all cards of given tag, or provides a menu of tags/each card')
             .setRequired(false)
-            .addChoice('tag','tag')
             .addChoice('tagmenu', 'tagmenu')
             .addChoice('allmenu','allmenu')),
 

@@ -6,7 +6,7 @@ module.exports = {
         .addStringOption(option => option.setName('dice')
             .setDescription('Roll the specified dice in the format of <quantity>d<size> repeated, separated by whitespace')
             .setRequired(true))
-        .addIntegerOption(option => option.setName('mod')
+        .addIntegerOption(option => option.setName('bonus')
             .setDescription('Add a fixed number to the results of the roll. Can be positive or negative')
             .setRequired(false))
         .addStringOption(option => option.setName('mode')
@@ -29,16 +29,24 @@ module.exports = {
  * @param {boolean} isDamage
  * @param {number} bonus
  */
-function handleRolls(userTag, diceStr, isDamage, bonus) {
+function handleRolls(userTag, diceStr, mode, bonus) {
     if (diceStr.length == 0) {
         return 'Invalid input: expecting dice';
     }
 
-    let rollTally = 0;
-    
-    if (isDamage == null) {
-        isDamage = false;
+    if (!bonus) {
+        bonus = 0;
     }
+
+    let isDamage = false;
+
+    if (mode != null) {
+        isDamage = mode == 'damage';
+    }
+
+    let rollTally = 0;
+
+    let output = '';
 
     for (let die of parseDiceStr(diceStr)) {
 
@@ -50,12 +58,12 @@ function handleRolls(userTag, diceStr, isDamage, bonus) {
 
         let diceResult = rollDice(die, isDamage);
 
-        console.log("Dice result: " + diceResult);
+        output += "Rolling " + die.toString() + ": " + diceResult.toString() + '\n';
         
         if (isDamage) {
-            rollTally += diceResult;
-        } else if (diceResult > rollTally) {
-            rollTally = diceResult;
+            rollTally += diceResult.total;
+        } else if (diceResult.total > rollTally) {
+            rollTally = diceResult.total;
         }
     }
 
@@ -63,14 +71,13 @@ function handleRolls(userTag, diceStr, isDamage, bonus) {
         rollTally += bonus;
     }
 
-    return userTag + ' rolls ' + rollTally + ' ' + (isDamage ? 'damage' : '');
+    output += userTag + ' rolls ' + (rollTally).toString() + (isDamage ? ' damage' : '');
+    if (rollTally == 1 && !isDamage) {
+        output += ' **GLITCH**'
+    }
+    return output;
 }
 
-/**
- * 
- * @param {DiceArg} diceArg
- * @param {boolean} isDamage 
- */
 function rollDice(diceArg, isDamage) {
     let rollTally = 0;
 
@@ -79,17 +86,21 @@ function rollDice(diceArg, isDamage) {
     let quantity = diceArg.quantity;
     let sides = diceArg.sides;
 
+    let diceResult = new DiceResult(diceArg);
+
     for (let i = 0; i < quantity; ++i) {
         console.log("rolling die # " + (i+1));
         let currRollTally = 0;
         do {
-            let rollResult = Math.floor(Math.random()*sides)+1;
+            let rollResult = Math.floor(Math.random()*(sides)+1);
 
-            console.log("rolled a " + rollResult);
+            console.log("rolled a " + rollResult.toString());
             
-            if (rollResult != 1) {
+            if (rollResult != 1 || isDamage) {
                 glitch = false;
             }
+
+            diceResult.push(rollResult);
             
             currRollTally += rollResult;
         } while (currRollTally % sides == 0);
@@ -107,7 +118,9 @@ function rollDice(diceArg, isDamage) {
 
     console.log("Glitched? " + glitch);
 
-    return rollTally;
+    diceResult.total = rollTally;
+
+    return diceResult;
 }
 
 /**
@@ -119,20 +132,48 @@ function parseDiceStr(diceStr) {
     let splitDice = diceStr.split(' ');
     let parsedDiceStr = [];
     for (let split of splitDice) {
-        let quantAndSides = split.split('d');
+        let quantity = 1;
+        let sides = 6;
+
+        if (!isNaN(split)) {
+            sides = parseInt(split);
+        } else {
+            let quantAndSides = split.split('d');
         
-        if (quantAndSides.length != 2) {
-            console.log("Invalid input " + quantAndSides + "detected, skipping");
-            continue;
-            // TODO: how to relay to user that this is invalid?
+            if (quantAndSides.length != 2) {
+                console.log("Invalid input " + quantAndSides + " detected, skipping");
+                continue;
+                // TODO: how to relay to user that this is invalid?
+            }
+
+            quantity = parseInt(quantAndSides[0]);
+            sides = parseInt(quantAndSides[1]);
         }
-
-        let quantity = parseInt(quantAndSides[0]);
-        let sides = parseInt(quantAndSides[1]);
-
+        
         parsedDiceStr.push(new DiceArg(quantity, sides));
     }
     return parsedDiceStr;
+}
+
+class DiceResult {
+    constructor(diceArg) {
+        this.arg = diceArg;
+        this.results = [];
+        this.total = 0;
+    }
+
+    push(result) {
+        this.results.push(result);
+    }
+
+    toString() {
+        let output = '';
+        for (let result of this.results) {
+            output = output + result.toString() + ' ';
+        }
+        output += '(' + this.total.toString() + ')';
+        return output;
+    }
 }
 
 class DiceArg {
