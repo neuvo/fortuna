@@ -82,15 +82,14 @@ class Deck {
     discardByTag(user, tag) {
         let discards = [];
         if (this.hands.has(user)) {
-            let toDiscard = [];
             for (let card of this.hands.get(user)) {
                 if (card.tag == tag) {
-                    toDiscard.push(this.hands.get(user).indexOf(card));
-                    discards.push(card);
                     this.banish(card);
+                    discards.push(card);
                 }
             }
-            for (let index of toDiscard) {
+            for (let card of discards) {
+                let index = this.hands.get(user).indexOf(card);
                 this.hands.get(user).splice(index, 1);
             }
         }
