@@ -66,7 +66,7 @@ function getDiscardRows(userName, mode) {
     if (mode.toLowerCase() == 'allmenu') {
         console.log('allmenu discard mode');
         for (let card of usersHand) {
-            discardOptions.push(new MessageButton().setCustomId(userName + 'allmenu' + card.id.toString())
+            discardOptions.push(new MessageButton().setCustomId('discard' + 'allmenu' + card.id.toString())
             .setLabel(card.toStringPlain())
             .setStyle('PRIMARY'));
         }
@@ -81,7 +81,7 @@ function getDiscardRows(userName, mode) {
         }
 
         for(let tag of tagSet) {
-            discardOptions.push(new MessageButton().setCustomId(userName + 'tagmenu' + tag)
+            discardOptions.push(new MessageButton().setCustomId('discard' + 'tagmenu' + tag)
             .setLabel(tag)
             .setStyle('PRIMARY'));
         }
@@ -113,17 +113,17 @@ function getDiscardRows(userName, mode) {
  * @param {MessageComponentInteraction} interaction The interaction
  * @returns Content and components to replace original message with
  */
-function respondToButton(interaction) {
+function respondToDiscard(interaction) {
     let customId = interaction.component.customId;
     let userName = interaction.user.tag;
     let tagMenu = customId.toLowerCase().includes('tagmenu');
     let allMenu = customId.toLowerCase().includes('allmenu');
 
     if (tagMenu) {
-        let tag = customId.substring(userName.length+7);
+        let tag = customId.substring(14);
         discards = theDeck.discardByTag(userName, tag);
     } else if (allMenu) {
-        let cardId = parseInt(customId.substring(userName.length + 7));
+        let cardId = parseInt(customId.substring(14));
         discards = theDeck.discardById(userName, cardId)
     }
 
@@ -134,4 +134,4 @@ function respondToButton(interaction) {
     };
 }
 
-module.exports.respondToButton=respondToButton;
+module.exports.respondToDiscard=respondToDiscard;

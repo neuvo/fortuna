@@ -1,7 +1,8 @@
 const fs = require('fs');
 const { Client, Collection, Intents } = require('discord.js');
 const { token } = require('./config.json');
-const { respondToButton } = require('./commands/discard');
+const { respondToDiscard: respondToDiscard } = require('./commands/discard');
+const { respondToRetag: respondToRetag } = require('./commands/retag');
 
 const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
 
@@ -21,7 +22,13 @@ client.on('interactionCreate', async interaction => {
 	if (interaction.isButton()) {
 		console.log("Button pressed");
 
-		return interaction.update(respondToButton(interaction));
+		if (interaction.component.customId.includes('discard')) {
+			return interaction.update(respondToDiscard(interaction));
+		} else if (interaction.component.customId.includes('retag')) {
+			return interaction.update(respondToRetag(interaction));
+		} else {
+			return interaction.reply('Unrecognized button');
+		}
 	} else if (interaction.isCommand()) {
 		const command = client.commands.get(interaction.commandName);
 
