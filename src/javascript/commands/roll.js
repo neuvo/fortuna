@@ -1,11 +1,15 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageButton, MessageActionRow } = require('discord.js');
+
+let diceRegEx = /(\d+d\d+|(?<=\s)\d(?=[^d]))/gi;
+let bonusRegEx = /[+-]\d([^d]|\b)/gi;
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('roll')
         .setDescription('Rolls specified dice, as a trait roll by default')
         .addStringOption(option => option.setName('dice')
-            .setDescription('Roll the specified dice in the format of <quantity>d<size> repeated, separated by whitespace')
+            .setDescription('Roll the specified dice')
             .setRequired(true))
         .addIntegerOption(option => option.setName('bonus')
             .setDescription('Add a fixed number to the results of the roll. Can be positive or negative')
@@ -54,6 +58,13 @@ function handleRolls(userTag, diceStr, mode, bonus) {
     let rollTally = 0;
 
     let output = '';
+
+    diceStr = ' ' + diceStr + ' ';
+
+    let bonusList = diceStr.match(bonusRegEx);
+    for (let bonusStr of bonusList) {
+        bonus += parseInt(bonusStr);
+    }
 
     for (let die of parseDiceStr(diceStr)) {
 
@@ -144,8 +155,7 @@ function rollDice(diceArg, isDamage) {
  * @param {string} diceStr 
  */
 function parseDiceStr(diceStr) {
-    diceStr = diceStr.trim(); // eliminate beginning and trailing whitespace
-    let splitDice = diceStr.split(' ');
+    let splitDice = diceStr.match(diceRegEx);
     let parsedDiceStr = [];
     for (let split of splitDice) {
         let quantity = 1;
