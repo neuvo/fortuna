@@ -10,9 +10,6 @@ module.exports = {
 	},
 };
 
-let roundCount = 0;
-let countdownPlace = -1;
-
 function handleCountdown() {
     let outputMsg = '';
 
@@ -34,8 +31,4 @@ function handleCountdown() {
         outputMsg = 'No cards held';
     }
     return outputMsg;
-}
-
-function getCountdownButtons() {
-    
 }

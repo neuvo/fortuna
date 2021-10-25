@@ -33,9 +33,10 @@ class Deck {
      * If fewer cards are returned than requested, then the deck ran out of cards.
      * @param {number} num the number of cards to draw
      * @param {string} tag the tag to apply to all cards; if null, will be left blank
+     * @param {string} plane the plane to apply to all cards
      * @returns array of cards drawn
      */
-    drawNum(num, tag) {
+    drawNum(num, tag, plane) {
         console.log('drawNum: ' + num + ', ' + tag);
         let draws = []
         for (let i = 0; i < num; ++i) {
@@ -49,6 +50,7 @@ class Deck {
             console.log('Random index = ' + index);
             let draw = this.availableCards[index];
             draw.tag = tag;
+            draw.plane = plane;
             this.availableCards.splice(index, 1); // remove one card from available cards
             draws.push(draw);
             console.log('drew a ' + draw.toString());
@@ -60,7 +62,7 @@ class Deck {
      * Discards a card from the user's hand with the given card ID number
      * @param {string} user Username
      * @param {integer} cardId Card id number to discard
-     * @returns none
+     * @returns the discarded card, or null if it doesn't exist
      */
     discardById(user, cardId) {
         if (this.hands.has(user)) {
@@ -72,6 +74,7 @@ class Deck {
                 }
             }
         }
+        return null;
     }
 
     /**
@@ -99,14 +102,18 @@ class Deck {
     /**
      * Discards all cards belonging to the cardholder
      * @param {string} user The cardholder
+     * @return array of all discarded cards
      */
     discard(user) {
         if (this.hands.has(user)) {
+            let output = this.hands.get(user);
             for (let card of this.hands.get(user)) {
                 this.banish(card);
             }
             this.hands.delete(user);
+            return output;
         }
+        return [];
     }
 
     /**
@@ -181,6 +188,7 @@ class Deck {
         
         if (card != null) {
             this.banish(card);
+            card.plane = newPlane;
             this.planesMap.get(newPlane).push(card);
         }
         
@@ -203,6 +211,7 @@ class Deck {
 
         for (let card of cards) {
             this.banish(card);
+            card.plane = newPlane;
             this.planesMap.get(newPlane).push(card);
         }
 
@@ -236,20 +245,39 @@ class Deck {
         }
         
         let newCards = this.drawNum(num, tag);
-        
-        if (!this.hands.has(user)) {
-            this.hands.set(user, []);
-        }
-
-        this.hands.set(user, this.hands.get(user).concat(newCards));
 
         if (plane == null) {
             plane = planes[planes.length-1];
         }
 
-        this.planesMap.set(plane, this.planesMap.get(plane).concat(newCards));
+        for (let card of newCards) {
+            card.plane = plane;
+        }
+        
+        this.giveCards(user, newCards);
 
         return newCards;
+    }
+
+    /**
+     * Gives a set of cards to a user
+     * @param {string} user user who shall become cardholder
+     * @param {array} cards array of cards to give
+     */
+    giveCards(user, cards) {
+        if (!this.hands.has(user)) {
+            this.hands.set(user, []);
+        }
+
+        this.hands.set(user, this.hands.get(user).concat(cards));
+
+        for (let card of cards) {
+            if (card.plane == null) {
+                card.plane = 'meatspace';
+            }
+            
+            this.planesMap.set(card.plane, this.planesMap.get(card.plane).concat(card));
+        }
     }
 
     /**
@@ -264,21 +292,6 @@ class Deck {
         } else {
             return this.hands.get(user);
         }
-    }
-
-    /**
-     * Finds a card's plane
-     * @param {Card} card the card to locate
-     * @returns string identifying the plane in which the card resides, or null if the card has not been drawn
-     */
-    getPlane(card) {
-        console.log(this.planesMap);
-        for (let plane of planes) {
-            if (this.planesMap.get(plane).includes(card)) {
-                return plane;
-            }
-        }
-        return null;
     }
 
     getCardsByPlane(plane) {
@@ -299,6 +312,7 @@ class Card {
     constructor(id, tag) {
         this.id = id;
         this.tag = tag;
+        this.plane = null;
     }
 
     toString() {
@@ -311,6 +325,10 @@ class Card {
 
         if (this.tag != null) {
             selfString += ' **' + this.tag + '**';
+        }
+
+        if (this.plane != null) {
+            selfString += ' _' + this.plane + '_';
         }
 
         return selfString;
@@ -326,6 +344,16 @@ class Card {
 
         if (this.tag != null) {
             selfString += ' (' + this.tag + ')';
+        }
+
+        return selfString;
+    }
+
+    toStringPlainPlane() {
+        let selfString = this.toStringPlain();
+
+        if (this.plane != null) {
+            selfString += ' [' + this.plane + ']';
         }
 
         return selfString;

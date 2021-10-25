@@ -66,9 +66,5 @@ function handleDraw(userName, numCards, tag, plane) {
         }
     }
 
-    if (cardsDrawn.length > 0) {
-        outputMsg += 'New cards sent to ' + plane;
-    }
-
     return outputMsg;
 }

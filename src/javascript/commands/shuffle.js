@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { theDeck } = require('../utils/playing-cards');
+const { clearDiscardStacks } = require('./discard');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -12,5 +13,6 @@ module.exports = {
 
 function handleShuffle(username) {
     theDeck.shuffle();
+	clearDiscardStacks();
     return username + ' shuffled the deck';
 }

@@ -15,19 +15,31 @@ module.exports = {
             .addChoice('allmenu','allmenu')),
 
 	async execute(interaction) {
-        if (interaction.options.getString('mode') == null) {
-            await interaction.reply(handleDiscard(interaction.user.tag,
-                interaction.options.getString('mode')));
-        } else {
-            await interaction.reply({
-                content: handleDiscard(interaction.user.tag, 
-                    interaction.options.getString('mode')),
-                components: getDiscardRows(interaction.user.tag, 
-                    interaction.options.getString('mode'))
-                });
-        }
+        await interaction.reply({
+            components: getDiscardRows(interaction.user.tag, 
+                interaction.options.getString('mode')),
+            content: handleDiscard(interaction.user.tag, 
+                interaction.options.getString('mode')),
+            });
 	},
 };
+
+let discardStacks = new Map();
+
+function clearDiscardStacks() {
+    discardStacks = {};
+}
+
+function pushDiscards(username, discards) {
+    if (discards == null || discards.length == 0) return;
+    else if (discardStacks.has(username)) {
+        discardStacks.get(username).push(discards);
+    } else {
+        discardStacks.set(username, [discards]);
+    }
+}
+
+module.exports.clearDiscardStacks=clearDiscardStacks;
 
 function handleDiscard(username, mode) {
     let usersHand = theDeck.viewHand(username);
@@ -37,14 +49,9 @@ function handleDiscard(username, mode) {
         console.log('mode is null, discarding entire hand...');
         let outputMsg = username + ' discards:\n';
         for (let card of usersHand) {
-            outputMsg += card.toString();
-            
-            let plane = theDeck.getPlane(card);
-            if (plane != null) {
-                outputMsg += ' _' + plane + '_\n';
-            }
+            outputMsg += card.toString() + '\n';
         }
-        theDeck.discard(username);
+        pushDiscards(username, theDeck.discard(username));
         console.log('discarded hand');
         return outputMsg;
     } else if (mode == 'tagmenu') {
@@ -62,14 +69,14 @@ function getDiscardRows(userName, mode) {
         return discardOptions;
     }
 
-    if (mode.toLowerCase() == 'allmenu') {
+    if (mode != null && mode.toLowerCase() == 'allmenu') {
         console.log('allmenu discard mode');
         for (let card of usersHand) {
             discardOptions.push(new MessageButton().setCustomId(encodeCustomId(['discard',userName,'allmenu',card.id.toString()]))
             .setLabel(card.toStringPlain())
             .setStyle('PRIMARY'));
         }
-    } else if (mode.toLowerCase() == 'tagmenu') {
+    } else if (mode != null && mode.toLowerCase() == 'tagmenu') {
         console.log('tagmenu discard mode');
         let tagSet = new Set();
         
@@ -86,6 +93,12 @@ function getDiscardRows(userName, mode) {
         }
     }
     
+    if (mode == null || discardOptions.length < 25) {
+        discardOptions.push(new MessageButton().setCustomId(encodeCustomId(['discard',userName,'undo']))
+            .setLabel('Undo')
+            .setStyle('DANGER'));
+    }
+    
     return getSendableComponents(discardOptions);
 }
 
@@ -100,9 +113,10 @@ function respondToDiscard(interaction) {
 
     let parsedId = parseCustomId(customId);
 
+    console.log('custom id parsed: ' + parsedId);
+
     let originalUser = parsedId[1];
     let discardMode = parsedId[2];
-    let discardTarget = parsedId[3];
 
     if (originalUser != invokingUser) {
         return {
@@ -111,19 +125,62 @@ function respondToDiscard(interaction) {
         }
     }
 
+    let outContent = '';
+
+    let discards = [];
+
     if (discardMode == 'tagmenu') {
-        let tag = discardTarget;
-        discards = theDeck.discardByTag(invokingUser, tag);
+        discards = theDeck.discardByTag(originalUser, parsedId[3]);
+        outContent = 'Discarded all cards with tag ' + parsedId[3];
     } else if (discardMode == 'allmenu') {
-        let cardId = parseInt(discardTarget);
-        discards = theDeck.discardById(invokingUser, cardId)
+        let cardId = parseInt(parsedId[3]);
+        discards = [theDeck.discardById(originalUser, cardId)];
+        outContent = 'Discarded ' + discards[0].toString() + ' ';
+    } else if (discardMode == 'undo') {
+        outContent = returnCards(originalUser);
     }
 
+    if (discards.length > 0) {
+        if (!discardStacks.has(originalUser)) {
+            discardStacks.set(originalUser, [discards]);
+        } else {
+            discardStacks.get(originalUser).push(discards);
+        }
+    }
+
+    console.log('discardStacks: ' + discardStacks);
+
     interaction.component.setDisabled(true);
+
+    if (discardMode == 'undo') {
+        for (let actionRow of interaction.message.components) {
+            for (let button of actionRow.components) {
+                button.setDisabled(false);
+            }
+        }
+    }
     
     return {
-        content: "Discard successful", components: interaction.message.components
+        content: outContent, components: interaction.message.components
     };
+}
+
+function returnCards(username) {
+    if (!discardStacks.has(username)) {
+        return username + ' has not discarded any cards';
+    }
+
+    let returnedCards = discardStacks.get(username).pop();
+    theDeck.giveCards(username, returnedCards);
+
+    let outString = 'Returned ';
+    for (let card of returnedCards) {
+        outString += card.toString() + ', ';
+    }
+
+    if (outString.length > 2) {
+        return outString.substring(0, outString.length-2); // trim the last comma and space
+    }
 }
 
 module.exports.respondToDiscard=respondToDiscard;
