@@ -33,7 +33,7 @@ client.on('interactionCreate', async interaction => {
 		} else if (interaction.component.customId.includes('planeshift')) {
 			return interaction.update(respondToPlaneshift(interaction));	
 		} else {
-			return interaction.reply('Unrecognized button');
+			return interaction.reply('Unrecognized button: ' + interaction.component.customId);
 		}
 	} else if (interaction.isCommand()) {
 		const command = client.commands.get(interaction.commandName);

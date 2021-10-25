@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageButton, MessageActionRow } = require('discord.js');
+const { parseCustomId, encodeCustomId } = require('../utils/command-utils');
 
 let diceRegEx = /(\d+d\d+|(?<=\s)\d(?=[^d]))/gi;
 let bonusRegEx = /[+-]\d([^d]|\b)/gi;
@@ -190,7 +191,7 @@ function getRerollButtons(userName, diceArg, modeArg, bonusArg) {
         bonusArg = 0;
     }
     
-    let customId = 'reroll#' + userName + '#' + diceArg + '#' + modeArg + '#' + bonusArg.toString();
+    let customId = encodeCustomId(['reroll', userName, diceArg, modeArg, bonusArg.toString()]);
     
     return [new MessageActionRow().addComponents(
             [new MessageButton().setCustomId(customId)
@@ -201,12 +202,12 @@ function getRerollButtons(userName, diceArg, modeArg, bonusArg) {
 
 function respondToReroll(interaction) {
     let customId = interaction.component.customId;
-    let splitId = customId.split('#');
+    let splitId = parseCustomId(customId);
     // split format: reroll, userName text, userName numbers, diceArg, modeArg, bonusArg
-    let userTag = splitId[1] + '#' + splitId[2];
-    let diceArg = splitId[3];
-    let modeArg = splitId[4];
-    let bonusArg = parseInt(splitId[5]);
+    let userTag = splitId[1];
+    let diceArg = splitId[2];
+    let modeArg = splitId[3];
+    let bonusArg = parseInt(splitId[4]);
     if (interaction.user.tag != userTag) {
         return {
             content: interaction.message.content + '\n Wrong user attempted reroll',

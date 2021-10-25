@@ -7,7 +7,7 @@ let delimiter=':';
  * @param {array} idParts An array of data to be encoded into a button custom ID
  * @returns A string of encoded data suitable for a button custom ID
  */
-function buildCustomId(idParts) {
+function encodeCustomId(idParts) {
     let customId = '';
     for (let i = 0; i < idParts.length; ++i) {
         customId += idParts[i];
@@ -45,6 +45,6 @@ function getSendableComponents(buttonList) {
     return output;
 }
 
-module.exports.buildCustomId=buildCustomId;
+module.exports.encodeCustomId=encodeCustomId;
 module.exports.parseCustomId=parseCustomId;
 module.exports.getSendableComponents=getSendableComponents;

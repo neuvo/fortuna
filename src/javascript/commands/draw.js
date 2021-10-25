@@ -41,7 +41,7 @@ function handleDraw(userName, numCards, tag, plane) {
     }
 
     if (tag != null) {
-        tag = tag.replaceAll(/(#|_)/,'');
+        tag = tag.replaceAll(/(#|_)/gi,'');
     }
 
     let cardsDrawn = theDeck.handleDraw(userName, numCards, tag, plane);

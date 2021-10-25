@@ -2,7 +2,7 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { InteractionResponseType } = require('discord-api-types/v9');
 const { MessageActionRow, MessageButton } = require('discord.js');
 const { theDeck } = require('../utils/playing-cards');
-const { buildCustomId, parseCustomId, getSendableComponents } = require('../utils/command-utils');
+const { encodeCustomId, parseCustomId, getSendableComponents } = require('../utils/command-utils');
 
 let defaultMode = 'allmenu';
 
@@ -37,7 +37,7 @@ function handlePlaneshift(newPlane) {
 }
 
 function getPlaneshiftId(userName, shiftTarget, newPlane, mode) {
-    return buildCustomId(['planeshift', userName, shiftTarget, newPlane, mode]);
+    return encodeCustomId(['planeshift', userName, shiftTarget, newPlane, mode]);
 }
 
 function getPlaneshiftButtons(userName, newPlane, mode) {

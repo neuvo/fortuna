@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { InteractionResponseType } = require('discord-api-types/v9');
 const { MessageActionRow, MessageButton } = require('discord.js');
+const { getSendableComponents, encodeCustomId, parseCustomId } = require('../utils/command-utils');
 const { theDeck } = require('../utils/playing-cards');
 
 module.exports = {
@@ -53,7 +54,6 @@ function handleDiscard(username, mode) {
     }
 }
 
-
 function getDiscardRows(userName, mode) {
     let discardOptions = [];
     let usersHand = theDeck.viewHand(userName);
@@ -65,7 +65,7 @@ function getDiscardRows(userName, mode) {
     if (mode.toLowerCase() == 'allmenu') {
         console.log('allmenu discard mode');
         for (let card of usersHand) {
-            discardOptions.push(new MessageButton().setCustomId('discard' + 'allmenu' + card.id.toString())
+            discardOptions.push(new MessageButton().setCustomId(encodeCustomId(['discard',userName,'allmenu',card.id.toString()]))
             .setLabel(card.toStringPlain())
             .setStyle('PRIMARY'));
         }
@@ -80,31 +80,13 @@ function getDiscardRows(userName, mode) {
         }
 
         for(let tag of tagSet) {
-            discardOptions.push(new MessageButton().setCustomId('discard' + 'tagmenu' + tag)
+            discardOptions.push(new MessageButton().setCustomId(encodeCustomId(['discard',userName,'tagmenu',tag]))
             .setLabel(tag)
             .setStyle('PRIMARY'));
         }
     }
-
-    console.log("preparing " + discardOptions.length + " buttons");
-    let discardRows = [];
-    let discardRow = new MessageActionRow();
-    let count = 0;
-    for (let button of discardOptions) {
-        discardRow.addComponents(button);
-        count++;
-        if (count == 5) {
-            discardRows.push(discardRow);
-            discardRow = new MessageActionRow();
-            count = 0;
-        }
-    }
-
-    if (discardRow.components.length > 0) {
-        discardRows.push(discardRow);
-    }
     
-    return discardRows;
+    return getSendableComponents(discardOptions);
 }
 
 /**
@@ -114,16 +96,27 @@ function getDiscardRows(userName, mode) {
  */
 function respondToDiscard(interaction) {
     let customId = interaction.component.customId;
-    let userName = interaction.user.tag;
-    let tagMenu = customId.toLowerCase().includes('tagmenu');
-    let allMenu = customId.toLowerCase().includes('allmenu');
+    let invokingUser = interaction.user.tag;
 
-    if (tagMenu) {
-        let tag = customId.substring(14);
-        discards = theDeck.discardByTag(userName, tag);
-    } else if (allMenu) {
-        let cardId = parseInt(customId.substring(14));
-        discards = theDeck.discardById(userName, cardId)
+    let parsedId = parseCustomId(customId);
+
+    let originalUser = parsedId[1];
+    let discardMode = parsedId[2];
+    let discardTarget = parsedId[3];
+
+    if (originalUser != invokingUser) {
+        return {
+            content: interaction.message.content,
+            components: interaction.message.components
+        }
+    }
+
+    if (discardMode == 'tagmenu') {
+        let tag = discardTarget;
+        discards = theDeck.discardByTag(invokingUser, tag);
+    } else if (discardMode == 'allmenu') {
+        let cardId = parseInt(discardTarget);
+        discards = theDeck.discardById(invokingUser, cardId)
     }
 
     interaction.component.setDisabled(true);

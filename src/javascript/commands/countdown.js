@@ -10,6 +10,9 @@ module.exports = {
 	},
 };
 
+let roundCount = 0;
+let countdownPlace = -1;
+
 function handleCountdown() {
     let outputMsg = '';
 
@@ -20,7 +23,7 @@ function handleCountdown() {
                 return cardB.id - cardA.id;
             });
             console.log(plane + ' holds ' + planeCards);
-            outputMsg += '>>>'+plane.toUpperCase()+'<<<\n';
+            outputMsg += '<<<'+plane.toUpperCase()+'>>>\n';
             for(let i = 0; i < planeCards.length; ++i) {
                 outputMsg += theDeck.getHolder(planeCards[i]) + ' holds ' + planeCards[i].toString() + '\n';
             }
@@ -31,4 +34,8 @@ function handleCountdown() {
         outputMsg = 'No cards held';
     }
     return outputMsg;
+}
+
+function getCountdownButtons() {
+    
 }
