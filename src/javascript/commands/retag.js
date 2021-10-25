@@ -28,7 +28,7 @@ function getRetagButtons(userName, newTag) {
     let retagOptions = [];
     for (let card of theDeck.viewHand(userName)) {
         let label = card.toStringPlain();
-        retagOptions.push(new MessageButton().setCustomId('retag'+card.id.toString()+'#'+newTag).setLabel(label).setStyle('PRIMARY'));
+        retagOptions.push(new MessageButton().setCustomId('retag'+card.id.toString()+'#'+newTag).setLabel(label).setStyle('SECONDARY'));
     }
 
     let buttonRows = [];

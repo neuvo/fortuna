@@ -63,8 +63,10 @@ function handleRolls(userTag, diceStr, mode, bonus) {
     diceStr = ' ' + diceStr + ' ';
 
     let bonusList = diceStr.match(bonusRegEx);
-    for (let bonusStr of bonusList) {
-        bonus += parseInt(bonusStr);
+    if (bonusList != null) {
+        for (let bonusStr of bonusList) {
+            bonus += parseInt(bonusStr);
+        }
     }
 
     for (let die of parseDiceStr(diceStr)) {
@@ -191,12 +193,12 @@ function getRerollButtons(userName, diceArg, modeArg, bonusArg) {
         bonusArg = 0;
     }
     
-    let customId = encodeCustomId(['reroll', userName, diceArg, modeArg, bonusArg.toString()]);
+    let customId = encodeCustomId('reroll', userName, diceArg, modeArg, bonusArg.toString());
     
     return [new MessageActionRow().addComponents(
             [new MessageButton().setCustomId(customId)
                 .setLabel('Reroll')
-                .setStyle('PRIMARY')
+                .setStyle('SECONDARY')
         ])];
 }
 

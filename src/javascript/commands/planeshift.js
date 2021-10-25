@@ -37,7 +37,7 @@ function handlePlaneshift(newPlane) {
 }
 
 function getPlaneshiftId(userName, shiftTarget, newPlane, mode) {
-    return encodeCustomId(['planeshift', userName, shiftTarget, newPlane, mode]);
+    return encodeCustomId('planeshift', userName, shiftTarget, newPlane, mode);
 }
 
 function getPlaneshiftButtons(userName, newPlane, mode) {
@@ -50,7 +50,7 @@ function getPlaneshiftButtons(userName, newPlane, mode) {
     if (mode == 'allmenu') {
         for (let card of theDeck.viewHand(userName)) {
             let label = card.toStringPlain();
-            shiftOptions.push(new MessageButton().setCustomId(getPlaneshiftId(userName, card.id, newPlane, mode)).setLabel(label).setStyle('PRIMARY'));
+            shiftOptions.push(new MessageButton().setCustomId(getPlaneshiftId(userName, card.id, newPlane, mode)).setLabel(label).setStyle('SECONDARY'));
         }
     } else if (mode == 'tagmenu') {
         let tagSet = new Set();
@@ -61,7 +61,7 @@ function getPlaneshiftButtons(userName, newPlane, mode) {
         }
 
         for (let tag of tagSet) {
-            shiftOptions.push(new MessageButton().setCustomId(getPlaneshiftId(userName, tag, newPlane, mode)).setLabel(tag).setStyle('PRIMARY'));
+            shiftOptions.push(new MessageButton().setCustomId(getPlaneshiftId(userName, tag, newPlane, mode)).setLabel(tag).setStyle('SECONDARY'));
         }
     }
 

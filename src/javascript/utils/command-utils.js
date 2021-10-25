@@ -7,11 +7,11 @@ let delimiter=':';
  * @param {array} idParts An array of data to be encoded into a button custom ID
  * @returns A string of encoded data suitable for a button custom ID
  */
-function encodeCustomId(idParts) {
+function encodeCustomId() {
     let customId = '';
-    for (let i = 0; i < idParts.length; ++i) {
-        customId += idParts[i];
-        if (i < idParts.length-1) {
+    for (let i = 0; i < arguments.length; ++i) {
+        customId += arguments[i];
+        if (i < arguments.length-1) {
             customId += delimiter;
         }
     }

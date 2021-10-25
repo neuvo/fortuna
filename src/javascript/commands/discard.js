@@ -2,7 +2,7 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { InteractionResponseType } = require('discord-api-types/v9');
 const { MessageActionRow, MessageButton } = require('discord.js');
 const { getSendableComponents, encodeCustomId, parseCustomId } = require('../utils/command-utils');
-const { theDeck } = require('../utils/playing-cards');
+const { theDeck, Card } = require('../utils/playing-cards');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -43,6 +43,10 @@ function pushDiscards(username, discards) {
 module.exports.clearDiscardStacks=clearDiscardStacks;
 
 function handleDiscard(username, mode) {
+    if (mode == 'undo') {
+        return returnCards(username);
+    }
+    
     let usersHand = theDeck.viewHand(username);
     if (usersHand.length == 0) {
         return username + ' has an empty hand';
@@ -64,8 +68,6 @@ function handleDiscard(username, mode) {
         return 'No tagged cards in hand';
     } else if (mode == 'allmenu') {
         return 'Held cards:';
-    } else if (mode == 'undo') {
-        return returnCards(username);
     }
 }
 
@@ -82,9 +84,9 @@ function getDiscardRows(userName, mode) {
     if (mode != null && mode.toLowerCase() == 'allmenu') {
         console.log('allmenu discard mode');
         for (let card of usersHand) {
-            discardOptions.push(new MessageButton().setCustomId(encodeCustomId(['discard',userName,'allmenu',card.id.toString()]))
+            discardOptions.push(new MessageButton().setCustomId(encodeCustomId('discard',userName,'allmenu',card.id.toString()))
             .setLabel(card.toStringPlain())
-            .setStyle('PRIMARY'));
+            .setStyle('SECONDARY'));
         }
     } else if (mode != null && mode.toLowerCase() == 'tagmenu') {
         console.log('tagmenu discard mode');
@@ -97,9 +99,9 @@ function getDiscardRows(userName, mode) {
         }
 
         for(let tag of tagSet) {
-            discardOptions.push(new MessageButton().setCustomId(encodeCustomId(['discard',userName,'tagmenu',tag]))
+            discardOptions.push(new MessageButton().setCustomId(encodeCustomId('discard',userName,'tagmenu',tag))
             .setLabel(tag)
-            .setStyle('PRIMARY'));
+            .setStyle('SECONDARY'));
         }
 
         if (tagSet.size == 0) {
@@ -107,8 +109,12 @@ function getDiscardRows(userName, mode) {
         }
     }
     
-    if (mode == null || discardOptions.length < 25) {
-        discardOptions.push(new MessageButton().setCustomId(encodeCustomId(['discard',userName,'undo']))
+    if (mode == null) {
+        discardOptions.push(new MessageButton().setCustomId(encodeCustomId('discard',userName,'undo'))
+            .setLabel('Undo')
+            .setStyle('DANGER'));
+    } else if (discardOptions.length < 25) {
+        discardOptions.push(new MessageButton().setCustomId(encodeCustomId('discard',userName,'undo',mode))
             .setLabel('Undo')
             .setStyle('DANGER'));
     }
@@ -143,13 +149,19 @@ function respondToDiscard(interaction) {
 
     let discards = [];
 
+    let discardTarget = parsedId[3];
+
     if (discardMode == 'tagmenu') {
-        discards = theDeck.discardByTag(originalUser, parsedId[3]);
-        outContent = 'Discarded all cards with tag ' + parsedId[3];
+        discards = theDeck.discardByTag(originalUser, discardTarget);
+        outContent = 'Discarded all cards with tag ' + discardTarget;
     } else if (discardMode == 'allmenu') {
-        let cardId = parseInt(parsedId[3]);
+        let cardId = parseInt(discardTarget);
         discards = [theDeck.discardById(originalUser, cardId)];
-        outContent = 'Discarded ' + discards[0].toString() + ' ';
+        if (discards != null && discards.length > 0) {
+            outContent = 'Discarded ' + discards[0] + ' ';
+        } else {
+            outContent = 'Couldn\'t find card in hand';
+        }
     } else if (discardMode == 'undo') {
         outContent = returnCards(originalUser);
     }
@@ -162,14 +174,26 @@ function respondToDiscard(interaction) {
         }
     }
 
-    console.log('discardStacks: ' + discardStacks);
-
     interaction.component.setDisabled(true);
 
     if (discardMode == 'undo') {
+        interaction.component.setDisabled(false);
+    }
+
+    let hand = theDeck.viewHand(originalUser);
+
+    if (discardMode == 'undo' && hand != null && hand.length > 0) {
+        let undoMode = parsedId[3];
+
         for (let actionRow of interaction.message.components) {
             for (let button of actionRow.components) {
-                button.setDisabled(false);
+                for (let card of hand) {
+                    if (undoMode == 'tagmenu' && card.tag == button.label) {
+                        button.setDisabled(false);
+                    } else if (undoMode == 'allmenu' && card.toStringPlain() == button.label) {
+                        button.setDisabled(false);
+                    }
+                }
             }
         }
     }
@@ -185,7 +209,11 @@ function returnCards(username) {
     }
 
     let returnedCards = discardStacks.get(username).pop();
-    theDeck.giveCards(username, returnedCards);
+    if (returnedCards != null && returnedCards.length > 0) {
+        theDeck.giveCards(username, returnedCards);
+    } else {
+        return 'No cards to return';
+    }
 
     let outString = 'Returned ';
     for (let card of returnedCards) {
