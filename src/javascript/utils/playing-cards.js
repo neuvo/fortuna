@@ -96,6 +96,10 @@ class Deck {
         return discards;
     }
 
+    /**
+     * Discards all cards belonging to the cardholder
+     * @param {string} user The cardholder
+     */
     discard(user) {
         if (this.hands.has(user)) {
             for (let card of this.hands.get(user)) {
@@ -105,13 +109,104 @@ class Deck {
         }
     }
 
+    /**
+     * Removes the given card from all planes, but not its owner's hand
+     * @param {Card} card The card to banish
+     * @returns None
+     */
     banish(card) {
         for (let plane of this.planesMap.keys()) {
             if (this.planesMap.get(plane).includes(card)) {
                 let index = this.planesMap.get(plane).indexOf(card);
                 this.planesMap.get(plane).splice(index,1);
+                return;
             }
         }
+    }
+
+    /**
+     * Searches for a card with the given id in the cardholder's hand
+     * @param {string} userName The cardholder
+     * @param {int} id The id to search for
+     * @returns The card matching the id in the user's hand, if it exists; or null if it doesn't
+     */
+    getHeldCardById(userName, id) {
+        if (!this.hands.has(userName)) {
+            return null;
+        }
+
+        for (let card of this.hands.get(userName)) {
+            if (card.id == id) {
+                return card;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Returns all cards held by a user matching a tag
+     * @param {string} userName The cardholder
+     * @param {string} tag The tag to match
+     * @returns Array of matching cards
+     */
+    getHeldCardsByTag(userName, tag) {
+        let matchingCards = [];
+        if (!this.hands.has(userName)) {
+            return matchingCards;
+        }
+
+        for (let card of this.hands.get(userName)) {
+            if (card.tag == tag) {
+                matchingCards.push(card);
+            }
+        }
+
+        return matchingCards;
+    }
+
+    /**
+     * Sends the card with the given id, belonging to the given user name, to the given plane
+     * @param {string} userName The cardholder's name
+     * @param {int} id The card id to be shifted
+     * @param {string} newPlane The plane to send the card to
+     * @returns The card that shifted, or null on failure
+     */
+    planeshiftById(userName, id, newPlane) {
+        if (!this.planesMap.has(newPlane)) {
+            return null;
+        }
+        
+        let card = this.getHeldCardById(userName, id);
+        
+        if (card != null) {
+            this.banish(card);
+            this.planesMap.get(newPlane).push(card);
+        }
+        
+        return card;
+    }
+
+    /**
+     * Shifts all cards belonging to a cardholder and with the given tag to a new plane
+     * @param {string} userName The cardholder's name
+     * @param {string} tag The tag to be shifted
+     * @param {string} newPlane The plane to send cards to
+     * @returns Array of cards that successfully made the jump, empty on a failure
+     */
+    planeshiftByTag(userName, tag, newPlane) {
+        if (!this.planesMap.has(newPlane)) {
+            return [];
+        }
+        
+        let cards = this.getHeldCardsByTag(userName, tag);
+
+        for (let card of cards) {
+            this.banish(card);
+            this.planesMap.get(newPlane).push(card);
+        }
+
+        return cards;
     }
 
     /**
@@ -224,7 +319,7 @@ class Card {
     toStringPlain() {
         let selfString = '';
         if (this.id >= 52) {
-            selfString += ':black_joker:';
+            selfString += 'Joker';
         } else {
             selfString += sortedRanks[Math.floor(this.id/4)] + ' of ' + sortedSuits[Math.floor(this.id%4)];
         }

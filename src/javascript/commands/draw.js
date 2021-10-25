@@ -40,6 +40,10 @@ function handleDraw(userName, numCards, tag, plane) {
         plane = 'meatspace';
     }
 
+    if (tag != null) {
+        tag = tag.replaceAll(/(#|_)/,'');
+    }
+
     let cardsDrawn = theDeck.handleDraw(userName, numCards, tag, plane);
 
     console.log('Draw results: ' + cardsDrawn);

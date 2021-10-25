@@ -4,6 +4,7 @@ const { token } = require('./config.json');
 const { respondToDiscard: respondToDiscard } = require('./commands/discard');
 const { respondToRetag: respondToRetag } = require('./commands/retag');
 const { respondToReroll: respondToReroll } = require('./commands/roll');
+const { respondToPlaneshift } = require('./commands/planeshift');
 
 const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
 
@@ -29,6 +30,8 @@ client.on('interactionCreate', async interaction => {
 			return interaction.update(respondToRetag(interaction));
 		} else if (interaction.component.customId.includes('reroll')) {
 			return interaction.update(respondToReroll(interaction));
+		} else if (interaction.component.customId.includes('planeshift')) {
+			return interaction.update(respondToPlaneshift(interaction));	
 		} else {
 			return interaction.reply('Unrecognized button');
 		}
