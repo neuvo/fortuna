@@ -12,7 +12,8 @@ module.exports = {
             .setDescription('Discards all cards of given tag, or provides a menu of tags/each card')
             .setRequired(false)
             .addChoice('tagmenu', 'tagmenu')
-            .addChoice('allmenu','allmenu')),
+            .addChoice('allmenu','allmenu')
+            .addChoice('undo','undo')),
 
 	async execute(interaction) {
         await interaction.reply({
@@ -55,13 +56,22 @@ function handleDiscard(username, mode) {
         console.log('discarded hand');
         return outputMsg;
     } else if (mode == 'tagmenu') {
-        return 'Held tags:';
+        for (let card of theDeck.viewHand(username)) {
+            if (card.tag != null) {
+                return 'Held tags:';
+            }
+        }
+        return 'No tagged cards in hand';
     } else if (mode == 'allmenu') {
         return 'Held cards:';
+    } else if (mode == 'undo') {
+        return returnCards(username);
     }
 }
 
 function getDiscardRows(userName, mode) {
+    if (mode == 'undo') return [];
+
     let discardOptions = [];
     let usersHand = theDeck.viewHand(userName);
 
@@ -90,6 +100,10 @@ function getDiscardRows(userName, mode) {
             discardOptions.push(new MessageButton().setCustomId(encodeCustomId(['discard',userName,'tagmenu',tag]))
             .setLabel(tag)
             .setStyle('PRIMARY'));
+        }
+
+        if (tagSet.size == 0) {
+            return [];
         }
     }
     
