@@ -13,7 +13,7 @@ class Initiative {
         this.turnOrder = [];
     }
 
-    updateTurnOrder() {
+    resetTurnOrder() {
         this.init();
 
         for (let plane of planes) {
@@ -29,6 +29,33 @@ class Initiative {
         return this.toString();
     }
 
+    updateTurnOrder() {
+        // capture the current card before wiping
+        let currentCard = this.getLastCard();
+
+        this.resetTurnOrder();
+
+        // problem: edge case where all cards following the last discarded card are discarded
+        
+        if (currentCard != null) {
+            for (let card of this.turnOrder) {
+                this.turnHistory.push(card);
+                let planeCompare = this.comparePlanes(card.plane, currentCard.plane);
+                if (planeCompare > 0)
+                    break;
+                else if (planeCompare == 0 && card.id <= currentCard.id) {
+                    break;
+                }
+            }
+        }
+
+        return this.toString();
+    }
+
+    comparePlanes(planeA, planeB) {
+        return planes.indexOf(planeA) - planes.indexOf(planeB);
+    }
+
     toString() {
         if (this.turnOrder.length == 0) {
             return 'No cards in countdown';
@@ -38,10 +65,7 @@ class Initiative {
 
         let outstring = this.getPlaneString(currplane);
 
-        let currentCard = null;
-        if (this.turnHistory.length > 0) {
-            currentCard = this.turnHistory[this.turnHistory.length-1];
-        }
+        let currentCard = this.getLastCard();
 
         for (let card of this.turnOrder) {
             if (card.plane != currplane) {
@@ -76,6 +100,7 @@ class Initiative {
     }
 
     next() {
+        this.updateTurnOrder();
         if (this.turnOrder.length == 0) {
             return null;
         }
@@ -94,6 +119,7 @@ class Initiative {
     }
 
     prev() {
+        this.updateTurnOrder();
         if (this.turnOrder.length == 0) {
             return null;
         } else if (this.turnHistory.length == 0) {
@@ -126,11 +152,16 @@ module.exports = {
 };
 
 function handleCountdown() {
-    return turntracker.updateTurnOrder();
+    return turntracker.resetTurnOrder();
 }
 
 function getControls() {
     let controlButtons = [];
+    
+    if (turntracker.turnOrder.length == 0) {
+        return controlButtons;
+    }
+
     controlButtons.push(new MessageButton().setCustomId(encodeCustomId('countdownnext'))
         .setLabel('Next')
         .setStyle('SECONDARY'));
@@ -140,6 +171,9 @@ function getControls() {
     controlButtons.push(new MessageButton().setCustomId(encodeCustomId('countdownupdate'))
         .setLabel('Update')
         .setStyle('PRIMARY'));
+    controlButtons.push(new MessageButton().setCustomId(encodeCustomId('countdownreset'))
+        .setLabel('Reset')
+        .setStyle('DANGER'));
     
     return getSendableComponents(controlButtons);
 }
@@ -158,6 +192,8 @@ function respondToCountdown(interaction) {
         turntracker.prev();
     } else if (pressedLabel == 'update') {
         outContent = turntracker.updateTurnOrder();
+    } else if (pressedLabel == 'reset') {
+        outContent = turntracker.resetTurnOrder();
     }
 
     outContent = turntracker.toString();

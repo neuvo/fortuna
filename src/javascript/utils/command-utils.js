@@ -10,7 +10,17 @@ let delimiter=':';
 function encodeCustomId() {
     let customId = '';
     for (let i = 0; i < arguments.length; ++i) {
-        customId += arguments[i];
+        if (typeof arguments[i] != "string") {
+            arguments[i] = arguments[i].toString();
+        }
+
+        // remove delimiter from argument
+        let currArg = arguments[i].replaceAll(delimiter, '');
+
+        if (currArg.length > 0) {
+            customId += currArg;
+        }
+
         if (i < arguments.length-1) {
             customId += delimiter;
         }
