@@ -1,8 +1,8 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageButton, MessageActionRow } = require('discord.js');
-const { parseCustomId, encodeCustomId } = require('../utils/command-utils');
+const { parseCustomId, encodeCustomId, getNickname } = require('../utils/command-utils');
 
-let diceRegEx = /(\d+d\d+|(?<=\s)\d+(?=[^d]))/gi;
+let diceRegEx = /(\d+d\d+|(?<=\s)\d(?=[^d]))/gi;
 let bonusRegEx = /[+-]\d([^d]|\b)/gi;
 
 module.exports = {
@@ -22,11 +22,11 @@ module.exports = {
             .addChoice('trait', 'trait')),
     async execute(interaction) {
         await interaction.reply({
-            content: handleRolls(interaction.user.tag, 
+            content: handleRolls(getNickname(interaction), 
                 interaction.options.getString('dice'), 
                 interaction.options.getString('mode'),
                 interaction.options.getInteger('bonus')),
-            components: getRerollButtons(interaction.user.tag, 
+            components: getRerollButtons(getNickname(interaction), 
                 interaction.options.getString('dice'), 
                 interaction.options.getString('mode'),
                 interaction.options.getInteger('bonus'))
@@ -70,6 +70,8 @@ function handleRolls(userTag, diceStr, mode, bonus) {
     }
 
     for (let die of parseDiceStr(diceStr)) {
+
+        console.log("Damage mode: " + isDamage);
 
         if (die.sides <= 1) {
             console.log('Invalid input ' + die.toString() + ': dice must have at least 2 sides');
@@ -209,7 +211,7 @@ function respondToReroll(interaction) {
     let diceArg = splitId[2];
     let modeArg = splitId[3];
     let bonusArg = parseInt(splitId[4]);
-    if (interaction.user.tag != userTag) {
+    if (getNickname(interaction) != userTag) {
         return {
             content: interaction.message.content + '\n Wrong user attempted reroll',
             components: interaction.message.components

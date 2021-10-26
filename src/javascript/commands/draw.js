@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { delimiter } = require('../utils/command-utils');
+const { delimiter, getNickname } = require('../utils/command-utils');
 const { Card, theDeck, planes } = require('../utils/playing-cards');
 
 module.exports = {
@@ -22,7 +22,7 @@ module.exports = {
             .setDescription('Appends ascending numbers to the tag, starting at 1')
             .setRequired(false)),
 	async execute(interaction) {
-		await interaction.reply(handleDraw(interaction.user.tag, 
+		await interaction.reply(handleDraw(getNickname(interaction), 
             interaction.options.getInteger('number'), 
             interaction.options.getString('tag'),
             interaction.options.getString('plane'),

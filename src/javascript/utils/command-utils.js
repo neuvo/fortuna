@@ -57,6 +57,16 @@ function getSendableComponents(buttonList) {
     return output;
 }
 
+function getNickname(interaction) {
+    let cache = interaction.guild.members.cache;
+    if (cache.has(interaction.user.id) && cache.get(interaction.user.id).nickname != null) {
+        return cache.get(interaction.user.id).nickname;
+    } else {
+        return interaction.user.username;
+    }
+}
+
 module.exports.encodeCustomId=encodeCustomId;
 module.exports.parseCustomId=parseCustomId;
 module.exports.getSendableComponents=getSendableComponents;
+module.exports.getNickname=getNickname;

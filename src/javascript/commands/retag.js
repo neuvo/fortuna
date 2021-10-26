@@ -2,6 +2,7 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { InteractionResponseType } = require('discord-api-types/v9');
 const { MessageActionRow, MessageButton } = require('discord.js');
 const { theDeck } = require('../utils/playing-cards');
+const { getNickname } = require('../utils/command-utils.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -14,7 +15,7 @@ module.exports = {
 	async execute(interaction) {
         await interaction.reply({
             content: handleRetag(interaction.options.getString('newtag')),
-            components: getRetagButtons(interaction.user.tag, interaction.options.getString('newtag'))
+            components: getRetagButtons(getNickname(interaction), interaction.options.getString('newtag'))
             });
 	},
 };
@@ -58,7 +59,7 @@ function getRetagButtons(userName, newTag) {
  */
 function respondToRetag(interaction) {
     let customId = interaction.component.customId;
-    let userName = interaction.user.tag;
+    let userName = getNickname(interaction);
 
     let cardIdAndTag = customId.substring(5,customId.length);
     let splitIndex = cardIdAndTag.indexOf('#');

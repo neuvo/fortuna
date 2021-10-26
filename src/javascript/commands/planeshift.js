@@ -2,7 +2,7 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { InteractionResponseType } = require('discord-api-types/v9');
 const { MessageActionRow, MessageButton } = require('discord.js');
 const { theDeck } = require('../utils/playing-cards');
-const { encodeCustomId, parseCustomId, getSendableComponents } = require('../utils/command-utils');
+const { encodeCustomId, parseCustomId, getSendableComponents, getNickname } = require('../utils/command-utils');
 
 let defaultMode = 'allmenu';
 
@@ -25,7 +25,7 @@ module.exports = {
 	async execute(interaction) {
         await interaction.reply({
             content: handlePlaneshift(interaction.options.getString('plane')),
-            components: getPlaneshiftButtons(interaction.user.tag, 
+            components: getPlaneshiftButtons(getNickname(interaction), 
                 interaction.options.getString('plane'), 
                 interaction.options.getString('mode'))
             });
@@ -74,7 +74,7 @@ function getPlaneshiftButtons(userName, newPlane, mode) {
  * @returns Content and components to replace original message with
  */
 function respondToPlaneshift(interaction) {
-    let invokedUser = interaction.user.tag; // user who pressed the button
+    let invokedUser = getNickname(interaction); // user who pressed the button
 
     let parsedId = parseCustomId(interaction.component.customId);
 

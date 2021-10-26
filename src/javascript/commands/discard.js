@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { InteractionResponseType } = require('discord-api-types/v9');
 const { MessageActionRow, MessageButton } = require('discord.js');
-const { getSendableComponents, encodeCustomId, parseCustomId } = require('../utils/command-utils');
+const { getSendableComponents, encodeCustomId, parseCustomId, getNickname } = require('../utils/command-utils');
 const { theDeck, Card } = require('../utils/playing-cards');
 
 module.exports = {
@@ -17,9 +17,9 @@ module.exports = {
 
 	async execute(interaction) {
         await interaction.reply({
-            components: getDiscardRows(interaction.user.tag, 
+            components: getDiscardRows(getNickname(interaction), 
                 interaction.options.getString('mode')),
-            content: handleDiscard(interaction.user.tag, 
+            content: handleDiscard(getNickname(interaction), 
                 interaction.options.getString('mode')),
             });
 	},
@@ -46,7 +46,7 @@ function handleDiscard(username, mode) {
     if (mode == 'undo') {
         return returnCards(username);
     }
-    
+
     let usersHand = theDeck.viewHand(username);
     if (usersHand.length == 0) {
         return username + ' has an empty hand';
@@ -129,7 +129,7 @@ function getDiscardRows(userName, mode) {
  */
 function respondToDiscard(interaction) {
     let customId = interaction.component.customId;
-    let invokingUser = interaction.user.tag;
+    let invokingUser = getNickname(interaction);
 
     let parsedId = parseCustomId(customId);
 
