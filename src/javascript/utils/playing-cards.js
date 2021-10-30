@@ -5,7 +5,11 @@ let sortedRanks = ['Deuce', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'N
 
 let planes = ['matrix','astral','meatspace'];
 
-exports.planes = planes;
+let { backupPath: backupPath } = require('../utils/command-utils');
+
+let fs = require('fs');
+
+module.exports.planes = planes;
 
 /**
  * Defines and manages the playing card deck structure. There should be only one deck per fortuna instance.
@@ -13,19 +17,10 @@ exports.planes = planes;
  */
 class Deck {
     constructor() {
-        this.hands = new Map();
+        this.dealtCards = [];
         this.availableCards = [];
-        this.planesMap = new Map();
         this.shuffle();
-    }
-    
-    // private functions
-
-    initPlanes() {
-        this.planesMap.clear();
-        for (let plane of planes) {
-            this.planesMap.set(plane, []);
-        }
+        this.restore();
     }
 
     /**
@@ -37,10 +32,8 @@ class Deck {
      * @returns array of cards drawn
      */
     drawNum(num, tag, plane) {
-        console.log('drawNum: ' + num + ', ' + tag);
         let draws = []
         for (let i = 0; i < num; ++i) {
-            console.log('drawing card ' + i);
             if (this.availableCards.length == 0) {
                 console.log('out of cards');
                 break;
@@ -65,15 +58,13 @@ class Deck {
      * @returns the discarded card, or null if it doesn't exist
      */
     discardById(user, cardId) {
-        if (this.hands.has(user)) {
-            for (let card of this.hands.get(user)) {
-                if (card.id == cardId) {
-                    this.banish(card);
-                    this.hands.get(user).splice(this.hands.get(user).indexOf(card),1);
-                    return card;
-                }
+        for (let card of this.viewHand(user)) {
+            if (card.id == cardId) {
+                this.dealtCards.splice(this.dealtCards.indexOf(card),1);
+                return card;
             }
         }
+        this.backup();
         return null;
     }
 
@@ -83,19 +74,12 @@ class Deck {
      * @param {string} tag Tag of cards to discard
      */
     discardByTag(user, tag) {
-        let discards = [];
-        if (this.hands.has(user)) {
-            for (let card of this.hands.get(user)) {
-                if (card.tag == tag) {
-                    this.banish(card);
-                    discards.push(card);
-                }
-            }
-            for (let card of discards) {
-                let index = this.hands.get(user).indexOf(card);
-                this.hands.get(user).splice(index, 1);
-            }
+        let discards = this.getHeldCardsByTag(user, tag);
+        for (let card of discards) {
+            let index = this.dealtCards.indexOf(card);
+            this.dealtCards.splice(index, 1);
         }
+        this.backup();
         return discards;
     }
 
@@ -105,30 +89,15 @@ class Deck {
      * @return array of all discarded cards
      */
     discard(user) {
-        if (this.hands.has(user)) {
-            let output = this.hands.get(user);
-            for (let card of this.hands.get(user)) {
-                this.banish(card);
-            }
-            this.hands.delete(user);
-            return output;
+        let discards = this.viewHand(user).splice();
+        
+        for (let card of discards) {
+            let index = this.dealtCards.indexOf(card);
+            this.dealtCards.splice(index, 1);
         }
-        return [];
-    }
 
-    /**
-     * Removes the given card from all planes, but not its owner's hand
-     * @param {Card} card The card to banish
-     * @returns None
-     */
-    banish(card) {
-        for (let plane of this.planesMap.keys()) {
-            if (this.planesMap.get(plane).includes(card)) {
-                let index = this.planesMap.get(plane).indexOf(card);
-                this.planesMap.get(plane).splice(index,1);
-                return;
-            }
-        }
+        this.backup();
+        return discards;
     }
 
     /**
@@ -138,11 +107,7 @@ class Deck {
      * @returns The card matching the id in the user's hand, if it exists; or null if it doesn't
      */
     getHeldCardById(userName, id) {
-        if (!this.hands.has(userName)) {
-            return null;
-        }
-
-        for (let card of this.hands.get(userName)) {
+        for (let card of this.viewHand(userName)) {
             if (card.id == id) {
                 return card;
             }
@@ -153,22 +118,17 @@ class Deck {
 
     /**
      * Returns all cards held by a user matching a tag
-     * @param {string} userName The cardholder
+     * @param {string} username The cardholder
      * @param {string} tag The tag to match
      * @returns Array of matching cards
      */
-    getHeldCardsByTag(userName, tag) {
+    getHeldCardsByTag(username, tag) {
         let matchingCards = [];
-        if (!this.hands.has(userName)) {
-            return matchingCards;
-        }
-
-        for (let card of this.hands.get(userName)) {
-            if (card.tag == tag) {
+        for (let card of this.viewHand(username)) {
+            if (card.tag.toLowerCase() === tag.toLowerCase()) {
                 matchingCards.push(card);
             }
         }
-
         return matchingCards;
     }
 
@@ -180,17 +140,17 @@ class Deck {
      * @returns The card that shifted, or null on failure
      */
     planeshiftById(userName, id, newPlane) {
-        if (!this.planesMap.has(newPlane)) {
+        if (!planes.includes(newPlane)) {
             return null;
         }
         
         let card = this.getHeldCardById(userName, id);
         
         if (card != null) {
-            this.banish(card);
             card.plane = newPlane;
-            this.planesMap.get(newPlane).push(card);
         }
+
+        this.backup();
         
         return card;
     }
@@ -203,17 +163,17 @@ class Deck {
      * @returns Array of cards that successfully made the jump, empty on a failure
      */
     planeshiftByTag(userName, tag, newPlane) {
-        if (!this.planesMap.has(newPlane)) {
+        if (planes.includes(newPlane)) {
             return [];
         }
         
         let cards = this.getHeldCardsByTag(userName, tag);
 
         for (let card of cards) {
-            this.banish(card);
             card.plane = newPlane;
-            this.planesMap.get(newPlane).push(card);
         }
+
+        this.backup();
 
         return cards;
     }
@@ -222,13 +182,12 @@ class Deck {
      * Shuffles the deck, clearing all hands and planes and restoring all cards to the deck with tags wiped
      */
     shuffle() {
-        this.hands.clear();
-        this.initPlanes();
         this.availableCards.splice(0, this.availableCards.length); // clear the available cards
         for (let id = 0; id < 54; ++id) {
             this.availableCards.push(new Card(id, null));
         }
-        console.log(this.availableCards);
+
+        this.dealtCards.splice(0, this.dealtCards.length);
     }
 
     /**
@@ -256,6 +215,8 @@ class Deck {
         
         this.giveCards(user, newCards);
 
+        this.backup();
+
         return newCards;
     }
 
@@ -265,19 +226,11 @@ class Deck {
      * @param {array} cards array of cards to give
      */
     giveCards(user, cards) {
-        if (!this.hands.has(user)) {
-            this.hands.set(user, []);
-        }
-
-        this.hands.set(user, this.hands.get(user).concat(cards));
-
         for (let card of cards) {
-            if (card.plane == null) {
-                card.plane = 'meatspace';
-            }
-            
-            this.planesMap.set(card.plane, this.planesMap.get(card.plane).concat(card));
+            card.holder = user;
         }
+        this.dealtCards = this.dealtCards.concat(cards);
+        this.backup();
     }
 
     /**
@@ -286,25 +239,101 @@ class Deck {
      * @returns list of cards belonging to the player
      */
     viewHand(user) {
-        console.log(this.hands);
-        if (!this.hands.has(user)) {
-            return [];
-        } else {
-            return this.hands.get(user);
+        let hand = [];
+
+        for (let card of this.dealtCards) {
+            if (card.holder === user) {
+                hand.push(card);
+            }
         }
+
+        return hand;
     }
 
     getCardsByPlane(plane) {
-        return this.planesMap.get(plane);
-    }
-
-    getHolder(card) {
-        for (let user of this.hands.keys()) {
-            if (this.hands.get(user).includes(card)) {
-                return user;
+        let planeCards = [];
+        for (let card of this.dealtCards) {
+            if (card.plane === plane) {
+                planeCards.push(card);
             }
         }
-        return null;
+        return planeCards;
+    }
+
+    replacer(key, value) {
+        if (value instanceof Map) {
+            return {
+                dataType: 'Map',
+                value: Array.from(value.entries()),
+            };
+        } else {
+            return value;
+        }
+    }
+
+    backup() {
+        // need to remove spaces from all tags
+
+        for (let card of this.availableCards) {
+            if (card.tag != null) {
+                card.tag.replaceAll(' ', '_');
+            }
+        }
+
+        fs.writeFile(backupPath, JSON.stringify(this, this.replacer), function(err) {
+            if (err) {
+                console.log(err);
+                return console.error(err);
+            }
+        });
+    }
+
+    /**
+     * Restores the card objects from backup and copies them into the current hands
+     * @param {Map} oldHands The map of strings to objects read from backup file
+     */
+    restoreCardMap(oldHands) {
+        let map = new Map();
+        for (let keyValue of oldHands) {
+            let key = keyValue[0];
+            let oldHand = keyValue[1];
+
+            map.set(key, this.objectArrToCards(oldHand));
+        }
+        return map;
+    }
+
+    objectArrToCards(objectArr) {
+        let cards = [];
+        for (let object of objectArr) {
+            let card = new Card(object.id, object.tag);
+            card.plane = object.plane;
+            card.holder = object.holder;
+            cards.push(card);
+        }
+        return cards;
+    }
+
+    restore() {
+        try {
+            let data = fs.readFileSync(backupPath);
+            if (data != null) {
+                data = data.toString();
+                let oldDeck = JSON.parse(data);
+                // this.hands = this.restoreCardMap(oldDeck.hands.value); // catch these hands
+                this.availableCards = this.objectArrToCards(oldDeck.availableCards);
+                // this.planesMap = this.restoreCardMap(oldDeck.planesMap.value);
+                this.dealtCards = this.objectArrToCards(oldDeck.dealtCards);
+
+                for (let card of this.availableCards) {
+                    if (card.tag != null) {
+                        card.tag.replaceAll(' ', '_');
+                    }
+                }
+            }
+        } catch (err) {
+            console.log(err);
+        }
     }
 };
 
@@ -313,6 +342,10 @@ class Card {
         this.id = id;
         this.tag = tag;
         this.plane = null;
+    }
+
+    assign(user) {
+        this.holder = user;
     }
 
     toString() {
@@ -357,6 +390,10 @@ class Card {
         }
 
         return selfString;
+    }
+
+    equals(other) {
+        return this.id === other.id && this.tag === other.tag && this.plane === other.plane;
     }
 }
 

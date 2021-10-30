@@ -6,11 +6,12 @@ const { respondToRetag: respondToRetag } = require('./commands/retag');
 const { respondToReroll: respondToReroll } = require('./commands/roll');
 const { respondToPlaneshift } = require('./commands/planeshift');
 const { respondToCountdown } = require('./commands/countdown');
+let { path } = require('path');
 
 const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
 
 client.commands = new Collection();
-const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+const commandFiles = fs.readdirSync((__dirname + '/commands')).filter(file => file.endsWith('.js'));
 
 for (const file of commandFiles) {
 	const command = require(`./commands/${file}`);

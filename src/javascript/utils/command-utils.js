@@ -4,6 +4,8 @@ let delimiter=':';
 
 module.exports.delimiter=delimiter;
 
+module.exports.backupPath=__dirname + '/../../data/backup_deck.db';
+
 /**
  * Creates a custom ID with delimited data, useful for responding to a command button
  * @param {array} idParts An array of data to be encoded into a button custom ID

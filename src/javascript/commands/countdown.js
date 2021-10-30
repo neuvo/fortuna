@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageButton } = require('discord.js');
-const { encodeCustomId, getSendableComponents } = require('../utils/command-utils');
+const { encodeCustomId, getSendableComponents, cdBackupPath } = require('../utils/command-utils');
 const { theDeck, planes } = require('../utils/playing-cards');
 
 class Initiative {
@@ -77,7 +77,7 @@ class Initiative {
                 outstring += '**>>>** ';
             }
 
-            outstring += theDeck.getHolder(card) + ' holds ' + card.toString() + '\n';
+            outstring += card.holder + ' holds ' + card.toString() + '\n';
         }
 
         return outstring;
