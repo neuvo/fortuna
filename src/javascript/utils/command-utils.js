@@ -5,6 +5,7 @@ let delimiter=':';
 module.exports.delimiter=delimiter;
 
 module.exports.backupPath=__dirname + '/../../data/backup_deck.db';
+module.exports.backupCdPath=__dirname + '/../../data/backup_countdown.db';
 
 /**
  * Creates a custom ID with delimited data, useful for responding to a command button

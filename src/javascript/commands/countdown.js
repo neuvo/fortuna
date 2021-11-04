@@ -1,11 +1,13 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageButton } = require('discord.js');
-const { encodeCustomId, getSendableComponents, cdBackupPath } = require('../utils/command-utils');
+const { encodeCustomId, getSendableComponents, cdBackupPath, backupCdPath } = require('../utils/command-utils');
 const { theDeck, planes } = require('../utils/playing-cards');
+const fs = require("fs");
 
 class Initiative {
     constructor() {
         this.init();
+        this.restore();
     }
 
     init() {
@@ -25,6 +27,8 @@ class Initiative {
             }
             this.turnOrder = this.turnOrder.concat(planeCards);
         }
+
+        this.backup();
 
         return this.toString();
     }
@@ -73,7 +77,7 @@ class Initiative {
                 outstring += this.getPlaneString(currplane);
             }
 
-            if (card == currentCard) {
+            if (currentCard != null && card.id == currentCard.id) {
                 outstring += '**>>>** ';
             }
 
@@ -101,37 +105,85 @@ class Initiative {
 
     next() {
         this.updateTurnOrder();
-        if (this.turnOrder.length == 0) {
-            return null;
-        }
 
-        for (let card of this.turnOrder) {
-            if (!this.turnHistory.includes(card) && 
-                    this.turnOrder.indexOf(card) > this.turnOrder.indexOf(this.getLastCard)) {
-                this.turnHistory.push(card);
-                return card;
+        let output = null;
+        if (this.turnOrder.length != 0) {
+            for (let card of this.turnOrder) {
+                if (!this.turnHistory.includes(card) && 
+                        this.turnOrder.indexOf(card) > this.turnOrder.indexOf(this.getLastCard())) {
+                    this.turnHistory.push(card);
+                    output = card;
+                    break;
+                }
+            }
+
+            // if hasn't filled output yet, then end of round has been reached
+            if (output == null) {
+                this.turnHistory = [this.turnOrder[0]];
+                output = this.getLastCard();
             }
         }
 
-        // if hasn't returned yet, then end of round has been reached
-        this.turnHistory = [this.turnOrder[0]];
-        return this.turnOrder[0];
+        this.backup();
+        return output;
     }
 
     prev() {
         this.updateTurnOrder();
+        let output = null;
         if (this.turnOrder.length == 0) {
-            return null;
+            // do nothing
         } else if (this.turnHistory.length == 0) {
-            let card = this.turnOrder[this.turnOrder.length-1];
             this.turnHistory = this.turnHistory.concat(this.turnOrder);
-            return card;
+            output = this.getLastCard();
         } else {
-            let output = this.turnHistory.pop();
+            output = this.turnHistory.pop();
             if (this.turnHistory.length == 0) {
                 this.turnHistory = this.turnHistory.concat(this.turnOrder);
             }
-            return output;
+        }
+
+        this.backup();
+        return output;
+    }
+
+    backup() {
+        for (let card of this.turnHistory) {
+            if (card.tag != null) {
+                card.tag.replaceAll(' ', '_');
+            }
+        }
+
+        for (let card of this.turnOrder) {
+            if (card.tag != null) {
+                card.tag.replaceAll(' ', '_');
+            }
+        }
+
+        fs.writeFile(backupCdPath, JSON.stringify(this), function(err) {
+            if (err) {
+                console.log(err);
+                return console.error(err);
+            }
+        });
+    }
+
+    restore() {
+        try {
+            let data = fs.readFileSync(backupCdPath);
+            if (data != null) {
+                data = data.toString();
+                let oldCountdown = JSON.parse(data);
+                this.turnHistory = theDeck.objectArrToCards(oldCountdown.turnHistory);
+
+                for (let card of this.turnHistory) {
+                    if (card.tag != null) {
+                        card.tag.replaceAll('_', ' ');
+                    }
+                }
+            }
+        } catch (err) {
+            console.log(err);
         }
     }
 
