@@ -2,8 +2,8 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageButton, MessageActionRow } = require('discord.js');
 const { parseCustomId, encodeCustomId, getNickname } = require('../utils/command-utils');
 
-let diceRegEx = /(\d+d\d+|(?<=\s)\d(?=[^d]))/gi;
-let bonusRegEx = /[+-]\d([^d]|\b)/gi;
+let diceRegEx = /(\d*d\d+|(?<=(\s+))\d+(?=[^d]))/gi;
+let bonusRegEx = /[+-]\d+([^d]|\b)/gi;
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -72,6 +72,10 @@ function handleRolls(userTag, diceStr, mode, bonus) {
     for (let die of parseDiceStr(diceStr)) {
 
         console.log("Damage mode: " + isDamage);
+
+        if (die.quantity == NaN) {
+            die.quantity = 1;
+        }
 
         if (die.sides <= 1) {
             console.log('Invalid input ' + die.toString() + ': dice must have at least 2 sides');
@@ -177,6 +181,9 @@ function parseDiceStr(diceStr) {
             }
 
             quantity = parseInt(quantAndSides[0]);
+            if (isNaN(quantity)) {
+                quantity = 1;
+            }
             sides = parseInt(quantAndSides[1]);
         }
         

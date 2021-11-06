@@ -104,7 +104,7 @@ function respondToPlaneshift(interaction) {
     let outputContent = interaction.message.content;
 
     for (let shiftedCard of shiftedCards) {
-        outputContent += '\nSent ' + shiftedCard.toString() + ' to ' + newPlane;
+        outputContent += '\nSent ' + shiftedCard.toStringNoPlane() + ' to ' + newPlane;
     }
 
     if (shiftedCards.length == 0) {

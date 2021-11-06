@@ -1,7 +1,9 @@
 
 
 let sortedSuits = ['Clubs', 'Diamonds', 'Hearts', 'Spades'];
+let sortedSuitsEmoji = [':clubs:', ':diamonds:', ':hearts:', ':spades:'];
 let sortedRanks = ['Deuce', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King', 'Ace'];
+let sortedRanksLaconic = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 
 let planes = ['matrix','astral','meatspace'];
 
@@ -89,7 +91,7 @@ class Deck {
      * @return array of all discarded cards
      */
     discard(user) {
-        let discards = this.viewHand(user).splice();
+        let discards = this.viewHand(user).slice();
         
         for (let card of discards) {
             let index = this.dealtCards.indexOf(card);
@@ -125,7 +127,8 @@ class Deck {
     getHeldCardsByTag(username, tag) {
         let matchingCards = [];
         for (let card of this.viewHand(username)) {
-            if (card.tag.toLowerCase() === tag.toLowerCase()) {
+            if (card.tag == null) continue;
+            else if (card.tag.toLowerCase() === tag.toLowerCase()) {
                 matchingCards.push(card);
             }
         }
@@ -163,7 +166,7 @@ class Deck {
      * @returns Array of cards that successfully made the jump, empty on a failure
      */
     planeshiftByTag(userName, tag, newPlane) {
-        if (planes.includes(newPlane)) {
+        if (!planes.includes(newPlane)) {
             return [];
         }
         
@@ -367,6 +370,25 @@ class Card {
         return selfString;
     }
 
+    toStringEmoji() {
+        let selfString = '';
+        if (this.id >= 52) {
+            selfString += ':black_joker:';
+        } else {
+            selfString += sortedRanksLaconic[Math.floor(this.id/4)] + ' of ' + sortedSuits[Math.floor(this.id%4)];
+        }
+
+        if (this.tag != null) {
+            selfString += ' **' + this.tag + '**';
+        }
+
+        if (this.plane != null) {
+            selfString += ' _' + this.plane + '_';
+        }
+
+        return selfString;
+    }
+
     toStringPlain() {
         let selfString = '';
         if (this.id >= 52) {
@@ -377,6 +399,21 @@ class Card {
 
         if (this.tag != null) {
             selfString += ' (' + this.tag + ')';
+        }
+
+        return selfString;
+    }
+
+    toStringNoPlane() {
+        let selfString = '';
+        if (this.id >= 52) {
+            selfString += ':black_joker:';
+        } else {
+            selfString += sortedRanks[Math.floor(this.id/4)] + ' of ' + sortedSuits[Math.floor(this.id%4)];
+        }
+
+        if (this.tag != null) {
+            selfString += ' **' + this.tag + '**';
         }
 
         return selfString;
