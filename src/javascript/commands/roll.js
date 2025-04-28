@@ -1,9 +1,9 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageButton, MessageActionRow } = require('discord.js');
-const { parseCustomId, encodeCustomId } = require('../utils/command-utils');
+const { parseCustomId, encodeCustomId, getNickname } = require('../utils/command-utils');
 
-let diceRegEx = /(\d+d\d+|(?<=\s)\d(?=[^d]))/gi;
-let bonusRegEx = /[+-]\d([^d]|\b)/gi;
+let diceRegEx = /(\d*d\d+|(?<=(\s+))\d+(?=[^d]))/gi;
+let bonusRegEx = /[+-]\d+([^d]|\b)/gi;
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -22,11 +22,11 @@ module.exports = {
             .addChoice('trait', 'trait')),
     async execute(interaction) {
         await interaction.reply({
-            content: handleRolls(interaction.user.tag, 
+            content: handleRolls(getNickname(interaction), 
                 interaction.options.getString('dice'), 
                 interaction.options.getString('mode'),
                 interaction.options.getInteger('bonus')),
-            components: getRerollButtons(interaction.user.tag, 
+            components: getRerollButtons(getNickname(interaction), 
                 interaction.options.getString('dice'), 
                 interaction.options.getString('mode'),
                 interaction.options.getInteger('bonus'))
@@ -63,16 +63,23 @@ function handleRolls(userTag, diceStr, mode, bonus) {
     diceStr = ' ' + diceStr + ' ';
 
     let bonusList = diceStr.match(bonusRegEx);
-    for (let bonusStr of bonusList) {
-        bonus += parseInt(bonusStr);
+    if (bonusList != null) {
+        for (let bonusStr of bonusList) {
+            bonus += parseInt(bonusStr);
+        }
     }
 
     for (let die of parseDiceStr(diceStr)) {
 
         console.log("Damage mode: " + isDamage);
 
+        if (die.quantity == NaN) {
+            die.quantity = 1;
+        }
+
         if (die.sides <= 1) {
-            return 'Invalid input ' + die.toString() + ': dice must have at least 2 sides';
+            console.log('Invalid input ' + die.toString() + ': dice must have at least 2 sides');
+            continue;
         }
 
         let diceResult = rollDice(die, isDamage);
@@ -174,6 +181,9 @@ function parseDiceStr(diceStr) {
             }
 
             quantity = parseInt(quantAndSides[0]);
+            if (isNaN(quantity)) {
+                quantity = 1;
+            }
             sides = parseInt(quantAndSides[1]);
         }
         
@@ -191,12 +201,12 @@ function getRerollButtons(userName, diceArg, modeArg, bonusArg) {
         bonusArg = 0;
     }
     
-    let customId = encodeCustomId(['reroll', userName, diceArg, modeArg, bonusArg.toString()]);
+    let customId = encodeCustomId('reroll', userName, diceArg, modeArg, bonusArg.toString());
     
     return [new MessageActionRow().addComponents(
             [new MessageButton().setCustomId(customId)
                 .setLabel('Reroll')
-                .setStyle('PRIMARY')
+                .setStyle('SECONDARY')
         ])];
 }
 
@@ -208,7 +218,7 @@ function respondToReroll(interaction) {
     let diceArg = splitId[2];
     let modeArg = splitId[3];
     let bonusArg = parseInt(splitId[4]);
-    if (interaction.user.tag != userTag) {
+    if (getNickname(interaction) != userTag) {
         return {
             content: interaction.message.content + '\n Wrong user attempted reroll',
             components: interaction.message.components

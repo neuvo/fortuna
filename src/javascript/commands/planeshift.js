@@ -2,7 +2,7 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { InteractionResponseType } = require('discord-api-types/v9');
 const { MessageActionRow, MessageButton } = require('discord.js');
 const { theDeck } = require('../utils/playing-cards');
-const { encodeCustomId, parseCustomId, getSendableComponents } = require('../utils/command-utils');
+const { encodeCustomId, parseCustomId, getSendableComponents, getNickname } = require('../utils/command-utils');
 
 let defaultMode = 'allmenu';
 
@@ -25,7 +25,7 @@ module.exports = {
 	async execute(interaction) {
         await interaction.reply({
             content: handlePlaneshift(interaction.options.getString('plane')),
-            components: getPlaneshiftButtons(interaction.user.tag, 
+            components: getPlaneshiftButtons(getNickname(interaction), 
                 interaction.options.getString('plane'), 
                 interaction.options.getString('mode'))
             });
@@ -37,7 +37,7 @@ function handlePlaneshift(newPlane) {
 }
 
 function getPlaneshiftId(userName, shiftTarget, newPlane, mode) {
-    return encodeCustomId(['planeshift', userName, shiftTarget, newPlane, mode]);
+    return encodeCustomId('planeshift', userName, shiftTarget, newPlane, mode);
 }
 
 function getPlaneshiftButtons(userName, newPlane, mode) {
@@ -50,7 +50,7 @@ function getPlaneshiftButtons(userName, newPlane, mode) {
     if (mode == 'allmenu') {
         for (let card of theDeck.viewHand(userName)) {
             let label = card.toStringPlain();
-            shiftOptions.push(new MessageButton().setCustomId(getPlaneshiftId(userName, card.id, newPlane, mode)).setLabel(label).setStyle('PRIMARY'));
+            shiftOptions.push(new MessageButton().setCustomId(getPlaneshiftId(userName, card.id, newPlane, mode)).setLabel(label).setStyle('SECONDARY'));
         }
     } else if (mode == 'tagmenu') {
         let tagSet = new Set();
@@ -61,7 +61,7 @@ function getPlaneshiftButtons(userName, newPlane, mode) {
         }
 
         for (let tag of tagSet) {
-            shiftOptions.push(new MessageButton().setCustomId(getPlaneshiftId(userName, tag, newPlane, mode)).setLabel(tag).setStyle('PRIMARY'));
+            shiftOptions.push(new MessageButton().setCustomId(getPlaneshiftId(userName, tag, newPlane, mode)).setLabel(tag).setStyle('SECONDARY'));
         }
     }
 
@@ -74,7 +74,7 @@ function getPlaneshiftButtons(userName, newPlane, mode) {
  * @returns Content and components to replace original message with
  */
 function respondToPlaneshift(interaction) {
-    let invokedUser = interaction.user.tag; // user who pressed the button
+    let invokedUser = getNickname(interaction); // user who pressed the button
 
     let parsedId = parseCustomId(interaction.component.customId);
 
@@ -104,7 +104,7 @@ function respondToPlaneshift(interaction) {
     let outputContent = interaction.message.content;
 
     for (let shiftedCard of shiftedCards) {
-        outputContent += '\nSent ' + shiftedCard.toString() + ' to ' + newPlane;
+        outputContent += '\nSent ' + shiftedCard.toStringNoPlane() + ' to ' + newPlane;
     }
 
     if (shiftedCards.length == 0) {

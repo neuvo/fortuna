@@ -5,11 +5,13 @@ const { respondToDiscard: respondToDiscard } = require('./commands/discard');
 const { respondToRetag: respondToRetag } = require('./commands/retag');
 const { respondToReroll: respondToReroll } = require('./commands/roll');
 const { respondToPlaneshift } = require('./commands/planeshift');
+const { respondToCountdown } = require('./commands/countdown');
+let { path } = require('path');
 
 const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
 
 client.commands = new Collection();
-const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+const commandFiles = fs.readdirSync((__dirname + '/commands')).filter(file => file.endsWith('.js'));
 
 for (const file of commandFiles) {
 	const command = require(`./commands/${file}`);
@@ -22,8 +24,6 @@ client.once('ready', () => {
 
 client.on('interactionCreate', async interaction => {
 	if (interaction.isButton()) {
-		console.log("Button pressed");
-
 		if (interaction.component.customId.includes('discard')) {
 			return interaction.update(respondToDiscard(interaction));
 		} else if (interaction.component.customId.includes('retag')) {
@@ -32,8 +32,11 @@ client.on('interactionCreate', async interaction => {
 			return interaction.update(respondToReroll(interaction));
 		} else if (interaction.component.customId.includes('planeshift')) {
 			return interaction.update(respondToPlaneshift(interaction));	
+		} else if (interaction.component.customId.includes('countdown')) {
+			return interaction.update(respondToCountdown(interaction));
 		} else {
-			return interaction.reply('Unrecognized button: ' + interaction.component.customId);
+			console.log('Unrecognized button: ' + interaction.component.customId);
+			return interaction.reply('Unrecognized button');
 		}
 	} else if (interaction.isCommand()) {
 		const command = client.commands.get(interaction.commandName);

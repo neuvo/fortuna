@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageActionRow, MessageSelectMenu } = require('discord.js');
 const { theDeck } = require('../utils/playing-cards');
+const { getNickname } = require('../utils/command-utils');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -8,7 +9,7 @@ module.exports = {
 		.setDescription('Shows your current hand'),
 	async execute(interaction) {
 		await interaction.reply({
-            content: handleHand(interaction.user.tag)});
+            content: handleHand(getNickname(interaction))});
 	},
 };
 
@@ -18,14 +19,11 @@ function handleHand(username) {
         return username + ' has an empty hand';
     } else {
         let outputMsg = username + ' holds:\n';
+
         for (let card of usersHand) {
-            outputMsg += card.toString();
-            
-            let plane = theDeck.getPlane(card);
-            if (plane != null) {
-                outputMsg += ' _' + plane + '_\n';
-            }
+            outputMsg += card.toString() + '\n';
         }
+        
         return outputMsg;
     }
 }
